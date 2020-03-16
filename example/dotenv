@@ -1,0 +1,19 @@
+# The environent.  If set to "dev" or "test" the code will not attempt to call back to
+# Harmony and will instead log the callbacks that would have been made.
+ENV=dev
+
+# A minimally-privileged Earthdata Login user able to access data
+EDL_USERNAME=
+EDL_PASSWORD=
+
+# The S3 bucket and key prefix to be used when uploading service outputs.  If using
+# localstack, ensure the bucket has been created
+STAGING_BUCKET=
+STAGING_PATH=
+
+# "true" to use localstack instead of S3
+USE_LOCALSTACK=
+
+# Set the host on which localstack is running.
+# Uncomment if running outside of Docker and not using S3
+# LOCALSTACK_HOST=localhost

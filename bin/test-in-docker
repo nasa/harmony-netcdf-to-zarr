@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+
+find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
+
+args="-v $(pwd):/home"
+
+if [ -d ../harmony-service-lib-py ]; then
+  (cd ../harmony-service-lib-py && make clean)
+  args="$args -v $(pwd)/../harmony-service-lib-py/harmony:/usr/lib/harmony-service-lib-py/harmony"
+  args="$args -e PYTHONPATH=/usr/lib/harmony-service-lib-py"
+fi
+
+docker run --rm -it $args harmony/netcdf-to-zarr-tests "$@"
+

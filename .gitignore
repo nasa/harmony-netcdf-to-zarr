@@ -1,3 +1,5 @@
+deps
+
 # Temporary output directories
 tmp*
 .DS_Store
