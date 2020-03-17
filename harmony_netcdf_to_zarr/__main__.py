@@ -3,7 +3,7 @@
 __main__.py
 =========
 
-Runs the harmony_gdal CLI
+Runs the harmony_netcdf_to_zarr CLI
 """
 
 import sys

@@ -79,6 +79,5 @@ bin/test
 
 Run an example:
 ```
-pip install -U "python-dotenv[cli]"
 dotenv python -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
 ```

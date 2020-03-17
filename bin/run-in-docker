@@ -1,11 +1,20 @@
 #!/bin/bash
 
+# This script mounts the contents of the current directory, and optionally the Python library in a peer
+# directory into the Harmony docker image and runs it.  It is meant to allow development and testing
+# without repeatedly rebuilding the docker image.  To run a completely clean container using only what
+# is in the image, as will be done in deployed environments, run
+# `docker run --rm -it --env-file=.env harmony/netcdf-to-zarr`
+
 set -ex
 
 find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
 
+# CLI flags.  Mount the current directory into the docker container's working directory
 args="-v $(pwd):/home"
 
+# If a peer directory exists for the Harmony python library, also mount it into the container, otherwise
+# it will use the version installed when the container was built
 if [ -d ../harmony-service-lib-py ]; then
   (cd ../harmony-service-lib-py && make clean)
   args="$args -v $(pwd)/../harmony-service-lib-py/harmony:/usr/lib/harmony-service-lib-py/harmony"

@@ -1,4 +1,4 @@
-# The environent.  If set to "dev" or "test" the code will not attempt to call back to
+# The environment.  If set to "dev" or "test" the code will not attempt to call back to
 # Harmony and will instead log the callbacks that would have been made.
 ENV=dev
 

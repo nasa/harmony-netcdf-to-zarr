@@ -5,7 +5,7 @@ set -ex
 image="harmony/netcdf-to-zarr"
 tag=${1:-latest}
 
-region=${AWS_DEFAULT_REGION-"us-west-2"}
+region=${AWS_DEFAULT_REGION:-"us-west-2"}
 
 account=$(aws sts get-caller-identity --output text --query 'Account')
 # Need to remove \r returned on all aws commands run from Bamboo

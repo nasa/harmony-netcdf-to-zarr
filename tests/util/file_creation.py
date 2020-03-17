@@ -71,7 +71,6 @@ def create_full_dataset(filename=None):
             [ -5.5,  0.0,  5.5],
             [-11.0, -5.5,  0.0]
         ]
-        #lats.make_scale('lat')
         lons[:, :] = np.rot90(lats, 3, axes=(0, 1))
 
         times[0] = 166536 # January 1st 2020
