@@ -8,11 +8,11 @@ EDL_PASSWORD=
 
 # The S3 bucket and key prefix to be used when uploading service outputs.  If using
 # localstack, ensure the bucket has been created
-STAGING_BUCKET=
-STAGING_PATH=
+STAGING_BUCKET=localStagingBucket
+STAGING_PATH=public/harmony/netcdf-to-zarr
 
-# "true" to use localstack instead of S3
-USE_LOCALSTACK=
+# "true" to use localstack instead of S3, false or unset otherwise
+USE_LOCALSTACK=true
 
 # Set the host on which localstack is running.
 # Uncomment if running outside of Docker and not using S3
