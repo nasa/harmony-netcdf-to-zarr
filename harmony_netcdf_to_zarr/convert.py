@@ -60,11 +60,15 @@ def __copy_variable(src, dst_group, name):
     chunks = src.chunking()
     if chunks == 'contiguous' or chunks is None:
         chunks = src.shape
-    dst = dst_group.create_dataset(name,
-            data=src,
-            shape=src.shape,
-            chunks=tuple(chunks),
-            dtype=src.dtype)
+    if not chunks and len(src.dimensions) == 0:
+        # Treat a 0-dimensional NetCDF variable as a zarr group
+        dst = dst_group.create_group(name)
+    else:
+        dst = dst_group.create_dataset(name,
+                data=src,
+                shape=src.shape,
+                chunks=tuple(chunks),
+                dtype=src.dtype)
 
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
     __copy_attrs(src, dst, _ARRAY_DIMENSIONS=list(src.dimensions))
