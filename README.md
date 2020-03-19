@@ -81,5 +81,5 @@ bin/test
 
 Run an example:
 ```
-dotenv run  python -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
+dotenv run python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
 ```
