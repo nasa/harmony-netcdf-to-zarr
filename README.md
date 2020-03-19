@@ -60,6 +60,7 @@ Prerequisites:
   - Python 3.7+, ideally installed via a virtual environment such as `pyenv`
   - Common compilers and build tools such as `gcc`, `g++`, and `make` as required
   - A local copy of the code
+  - [harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse) checked out in a peer directory
   - Localstack (optional, recommended)
 
 Copy [example/dotenv](example/dotenv) to `.env` (`cp example/dotenv .env`) and set variables according
@@ -68,6 +69,7 @@ to the instructions in the file.
 Install dependencies:
 ```
 pip3 install -r requirements/core.txt -r requirements/dev.txt
+pip3 install -e ../harmony-service-lib-py
 ```
 
 #### Common tasks
@@ -79,5 +81,5 @@ bin/test
 
 Run an example:
 ```
-dotenv python -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
+dotenv run  python -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
 ```
