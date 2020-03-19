@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Verification helper
+
+# Opens a Python REPL with a function, open_localstack_zarr that takes a location to a localstack
+# zarr file, opens it, and returns the resulting zarr object for inspection
+
+# Prerequisites:
+#    - Localstack running on localhost
+#    - pip3 install s3fs zarr
+
+python3 -ic "$(cat <<EOF
+def open_localstack_zarr(name):
+    import s3fs
+    import zarr
+    fs = s3fs.S3FileSystem(
+        use_ssl=False,
+        client_kwargs=dict(
+            region_name='us-west-2',
+            endpoint_url='http://localhost:4572',
+            aws_access_key_id='DUMMY_ACCESS_KEY',
+            aws_secret_access_key='DUMMY_SECRET_KEY'))
+    store = fs.get_mapper(root=name, check=False)
+    return zarr.open(store)
+EOF)"

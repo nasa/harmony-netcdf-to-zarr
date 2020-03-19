@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+tag=${1:-latest}
+
+test_image="harmony/netcdf-to-zarr-tests"
+docker build --build-arg TAG=$tag -f tests/Dockerfile -t ${test_image}:${tag} .
