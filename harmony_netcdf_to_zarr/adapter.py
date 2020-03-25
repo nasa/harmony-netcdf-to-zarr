@@ -56,13 +56,13 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
         for i, granule in enumerate(granules):
             try:
                 self.download_granules([granule])
-                name = granule.name.rsplit('.', 1)[0]
-                root = 's3://%s/%s.zarr' % (self.prefix, name)
+                name = self.filename_for_granule(granule, '.zarr')
+                root = 's3://%s/%s' % (self.prefix, name)
                 store = self.s3.get_mapper(root=root, check=False, create=True)
                 netcdf_to_zarr(granule.local_filename, store)
 
                 progress = int(100 * (i + 1) / len(granules))
-                self.async_add_url_partial_result(root, title=name + '.zarr', mime='application/x-zarr', progress=progress)
+                self.async_add_url_partial_result(root, title=name, mime='application/x-zarr', progress=progress)
             except:
                 self.completed_with_error('Could not convert granule to Zarr: ' + granule.id)
                 raise # We could opt to continue when things are known-stable.  For now, avoid downloading just to fail repeatedly

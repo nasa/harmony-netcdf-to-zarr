@@ -57,6 +57,9 @@ class TestAdapter(unittest.TestCase):
         self.assertEqual(callbacks[1]['item[type]'], 'application/x-zarr')
         self.assertEqual(callbacks[2], {'status': 'successful'})
         self.assertNotEqual(callbacks[0]['item[href]'], callbacks[1]['item[href]'])
+        self.assertTrue(callbacks[0]['item[href]'].endswith('.zarr'))
+        self.assertTrue(callbacks[1]['item[href]'].endswith('.zarr'))
+
 
         # Open the Zarr file that the adapter called back with
         zarr_location = callbacks[0]['item[href]']
