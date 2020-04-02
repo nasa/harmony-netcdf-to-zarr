@@ -9,8 +9,6 @@ from urllib import parse
 # Mock environment so .env does not need correct values
 MOCK_ENV = dict(
     ENV='test',
-    STAGING_BUCKET='fake-staging-bucket',
-    STAGING_PATH='public/harmony/netcdf-to-zarr',
     EDL_USERNAME='fake',
     EDL_PASSWORD='fake'
 )
@@ -35,6 +33,7 @@ def mock_message_for(*files):
     return json.dumps(dict(
         user='jdoe',
         callback='http://localhost/fake',
+        stagingLocation='s3://example-bucket/public/harmony/netcdf-to-zarr/example-uuid/',
         sources=[dict(collection="C000-TEST", granules=granules)]
     ))
 

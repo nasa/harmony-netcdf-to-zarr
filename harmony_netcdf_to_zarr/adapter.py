@@ -7,7 +7,6 @@ Service adapter for converting NetCDF4 to Zarr
 """
 
 from os import environ
-from uuid import uuid4
 import harmony
 import zarr
 import s3fs
@@ -19,11 +18,11 @@ def make_localstack_s3fs():
     host = environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
     return s3fs.S3FileSystem(
         use_ssl=False,
+        key='ACCESS_KEY',
+        secret='SECRET_KEY',
         client_kwargs=dict(
             region_name=region,
-            endpoint_url='http://%s:4572' % (host),
-            aws_access_key_id='ACCESS_KEY',
-            aws_secret_access_key='SECRET_KEY'))
+            endpoint_url='http://%s:4572' % (host)))
 
 def make_s3fs():
     return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
@@ -41,9 +40,6 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
         else:
             self.s3 = make_s3fs()
 
-        uuid = str(uuid4())
-        self.prefix = '%s/%s/%s' % (environ.get('STAGING_BUCKET'), environ.get('STAGING_PATH'), uuid)
-
     def invoke(self):
         """
         Downloads, translates to Zarr, then re-uploads granules
@@ -57,7 +53,7 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
             try:
                 self.download_granules([granule])
                 name = self.filename_for_granule(granule, '.zarr')
-                root = 's3://%s/%s' % (self.prefix, name)
+                root = self.message.stagingLocation + name
                 store = self.s3.get_mapper(root=root, check=False, create=True)
                 netcdf_to_zarr(granule.local_filename, store)
 
