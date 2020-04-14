@@ -28,7 +28,9 @@ def mock_message_for(*files):
         granules.append(dict(
             id = "G00%d-TEST" % (i,),
             name = f.split('/')[-1],
-            url = "file://" + f
+            url = "file://" + f,
+            temporal = dict(start='2020-01-01T00:00:00.000Z', end='2020-01-02T00:00:00.000Z'),
+            bbox = [-11.1, -22.2, 33.3, 44.4]
         ))
     return json.dumps(dict(
         user='jdoe',
