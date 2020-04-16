@@ -60,6 +60,10 @@ class TestAdapter(unittest.TestCase):
         self.assertTrue(callbacks[0]['item[href]'].endswith('.zarr'))
         self.assertTrue(callbacks[1]['item[href]'].endswith('.zarr'))
 
+        # Now calls back with spatial and temporal if present in the incoming message
+        self.assertEqual(callbacks[0]['item[temporal]'], '2020-01-01T00:00:00.000Z,2020-01-02T00:00:00.000Z')
+        self.assertEqual(callbacks[0]['item[bbox]'], '-11.1,-22.2,33.3,44.4')
+
 
         # Open the Zarr file that the adapter called back with
         zarr_location = callbacks[0]['item[href]']
