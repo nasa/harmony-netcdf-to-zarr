@@ -16,4 +16,4 @@ for dep in harmony-service-lib-py; do
   fi
 done
 
-docker build -t ${image}:${tag} .
+docker build --network host -t ${image}:${tag} .
