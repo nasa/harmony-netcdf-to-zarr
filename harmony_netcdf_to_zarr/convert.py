@@ -3,6 +3,7 @@ import zarr
 from netCDF4 import Dataset
 import numpy as np
 
+
 def netcdf_to_zarr(src, dst):
     """
     Convert the NetCDF file at src to the zarr file at dst, preserving data, metadata, and
@@ -35,8 +36,9 @@ def netcdf_to_zarr(src, dst):
         for resource in managed_resources:
             try:
                 resource.close()
-            except:
+            except BaseException:
                 pass
+
 
 def __copy_variable(src, dst_group, name):
     """
@@ -65,15 +67,16 @@ def __copy_variable(src, dst_group, name):
         dst = dst_group.create_group(name)
     else:
         dst = dst_group.create_dataset(name,
-                data=src,
-                shape=src.shape,
-                chunks=tuple(chunks),
-                dtype=src.dtype)
+                                       data=src,
+                                       shape=src.shape,
+                                       chunks=tuple(chunks),
+                                       dtype=src.dtype)
 
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
     __copy_attrs(src, dst, _ARRAY_DIMENSIONS=list(src.dimensions))
 
     return dst
+
 
 def __copy_attrs(src, dst, **kwargs):
     """
@@ -90,9 +93,10 @@ def __copy_attrs(src, dst, **kwargs):
     **kwargs : dict
         Additional attributes to add to the destination
     """
-    attrs = { key: __netcdf_attr_to_python(getattr(src, key)) for key in src.ncattrs() }
+    attrs = {key: __netcdf_attr_to_python(getattr(src, key)) for key in src.ncattrs()}
     attrs.update(kwargs)
     dst.attrs.put(attrs)
+
 
 def __copy_group(src, dst):
     """
@@ -113,6 +117,7 @@ def __copy_group(src, dst):
 
     for name, item in src.variables.items():
         __copy_variable(item, dst, name)
+
 
 def __netcdf_attr_to_python(val):
     """
@@ -141,6 +146,7 @@ def __netcdf_attr_to_python(val):
         # Assumes bytes are UTF-8 strings.  This holds for attributes.
         return val.decode("utf-8")
     return val
+
 
 if __name__ == '__main__':
     netcdf_to_zarr(sys.argv[1], sys.argv[2])

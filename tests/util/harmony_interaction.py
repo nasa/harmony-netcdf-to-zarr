@@ -70,4 +70,3 @@ def parse_callbacks(_callback_post):
         parsed_query = {k: v[0] for k, v in parse.parse_qs(query).items()}
         result.append(parsed_query)
     return result
-
