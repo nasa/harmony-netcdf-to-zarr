@@ -5,15 +5,6 @@ set -e
 image="harmony/netcdf-to-zarr"
 tag=${1:-latest}
 
-for dep in harmony-service-lib-py; do
-  if [ -d "../$dep" ]; then
-    rm -rf deps/$dep
-    mkdir -p deps
-    cp -R ../$dep deps/
-    (cd deps/$dep && make clean)
-  else
-    [ ! -d "deps/$dep" ] && git clone https://git.earthdata.nasa.gov/scm/harmony/$dep.git deps/$dep
-  fi
-done
-
+# We use the `host` network mode so we can have access to the
+# host VPN connection used for Nexus access.
 docker build --network host -t ${image}:${tag} .
