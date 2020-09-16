@@ -5,6 +5,18 @@ set -e
 image="harmony/netcdf-to-zarr"
 tag=${1:-latest}
 
-# We use the `host` network mode so we can have access to the
+# NOTE: We use the `host` network mode so we can have access to the
 # host VPN connection used for Nexus access.
+
 docker build --network host -t ${image}:${tag} .
+
+if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
+then
+  LOCAL_SVCLIB=harmony-service-lib.tgz
+  tar -czvf ${LOCAL_SVCLIB} -C ${LOCAL_SVCLIB_DIR} .
+  docker build -f Dockerfile.local-service-lib \
+    --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
+    --network host \
+    -t ${image}:${tag} .
+  rm ${LOCAL_SVCLIB}
+fi

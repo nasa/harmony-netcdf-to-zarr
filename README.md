@@ -64,6 +64,22 @@ As with the tests, you can run using a local repo for the Harmony Service Librar
 LOCAL_SVCLIB_DIR=/path/to/harmony-service-lib-py bin/run-in-docker example/harmony-operation.json
 ```
 
+NOTE: The steps above that use a local clone of the Harmony Service Library repo don't copy
+the contents of that local repo into the image. Instead, they mount the local directory
+into the running container so that any changes in the repo are reflected in the container.
+So, if you'd like to build a Docker image that *does* have the contents of the local Harmony
+Service Library repo copied into it, as you did above, specify its location when
+building the image:
+
+```
+LOCAL_SVCLIB_DIR=/path/to/harmony-service-lib-py bin/build-image
+```
+
+Now the local harmony/netcdf-to-zarr:latest Docker image will contain the local version
+of both the Harmony Service Library and this service. This also means that the image
+needs to be rebuilt (using the same command) to test changes to this service or the
+Harmony Service Library.
+
 ### Development without Docker
 
 #### Setup
@@ -88,25 +104,25 @@ install Python and create a virtualenv:
 pyenv install 3.7.4
 pyenv virtualenv 3.7.4 harmony-ntz
 pyenv activate harmony-ntz
-pyenv local
+pyenv version > .python-version
 ```
 
 The last step above creates a local .python-version file which will be automatically activated when cd'ing into the
-directory if pyenv-virtualenv has been initialized.
+directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above).
 
 Install project dependencies:
 ```
-pip3 install -r requirements/core.txt -r requirements/dev.txt
+pip install -r requirements/core.txt -r requirements/dev.txt
 ```
 
 ### Installing `harmony-service-lib-py` in Development Mode
 
 You may be concurrently developing on this service as well as the `harmony-service-lib-py`. If so, and you 
-want to test changes to it along with this service, install the `harmony-service-lib-py in 'development mode'. 
-If it has been cloned in a sibling directory, do so with:
+want to test changes to it along with this service, install the `harmony-service-lib-py` in 'development mode'. 
+Install it using pip and the path to the local clone of the service library:
 
 ```
-pip3 install -e /path/to/harmony-service-lib-py
+pip install -e /path/to/harmony-service-lib-py
 ```
 
 Now any changes made to that local repo will be visible in this project when you run tests, etc.
