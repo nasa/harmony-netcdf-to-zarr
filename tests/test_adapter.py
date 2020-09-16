@@ -11,15 +11,17 @@ import unittest
 from unittest.mock import patch
 
 import boto3
-from moto import mock_s3
 import s3fs
 import zarr
+from harmony.message import Message
+from moto import mock_s3
 
 from harmony_netcdf_to_zarr.__main__ import main
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
-from harmony.message import Message
-from .util.file_creation import create_full_dataset, ROOT_METADATA_VALUES
-from .util.harmony_interaction import MOCK_ENV, mock_message_for, parse_callbacks
+
+from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset
+from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
+                                       parse_callbacks)
 
 logger = logging.getLogger()
 

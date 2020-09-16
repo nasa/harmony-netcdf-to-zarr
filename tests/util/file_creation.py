@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-from netCDF4 import Dataset
-import numpy as np
-import uuid
 import tempfile
+import uuid
+
+import numpy as np
+from netCDF4 import Dataset
 
 ROOT_METADATA_VALUES = dict(
     Conventions="CF-1.6",

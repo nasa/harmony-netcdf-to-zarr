@@ -1,7 +1,8 @@
 import sys
+
+import numpy as np
 import zarr
 from netCDF4 import Dataset
-import numpy as np
 
 
 def netcdf_to_zarr(src, dst):

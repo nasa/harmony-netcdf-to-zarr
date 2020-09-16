@@ -12,6 +12,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     raise Exception('You must use Python 3.6 or later')
 
 import argparse
+
 import harmony
 
 from .adapter import NetCDFToZarrAdapter as HarmonyAdapter

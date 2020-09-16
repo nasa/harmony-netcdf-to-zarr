@@ -7,8 +7,10 @@ Service adapter for converting NetCDF4 to Zarr
 """
 
 from os import environ
+
 import harmony
 import s3fs
+
 from .convert import netcdf_to_zarr
 
 region = environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
