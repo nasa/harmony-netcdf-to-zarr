@@ -17,3 +17,6 @@ USE_LOCALSTACK=true
 # Set the host on which localstack is running.
 # Uncomment if running outside of Docker and not using S3
 # LOCALSTACK_HOST=localhost
+
+# The shared secret key used for encrypting & decrypting data in the Harmony message
+SHARED_SECRET_KEY=_THIS_IS_MY_32_CHARS_SECRET_KEY_
