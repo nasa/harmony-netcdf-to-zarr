@@ -17,6 +17,7 @@ cmd="bin/test"
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
+  LOCAL_SVCLIB_DIR=$(realpath $LOCAL_SVCLIB_DIR)
   svclib_volume="-v ${LOCAL_SVCLIB_DIR}:/opt/harmony-service-lib-py"
   cmd="pip install --user -e /opt/harmony-service-lib-py && bin/test"
 fi

@@ -49,7 +49,7 @@ bin/test-in-docker
 
 Run tests using a local repo for the Harmony Service Library:
 ```
-LOCAL_SVCLIB_DIR=/path/to/harmony-service-lib-py bin/test-in-docker
+LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/test-in-docker
 ```
 
 Run an example using the built Docker container and contents of [example/harmony-operation.json](example/harmony-operation.json)
@@ -61,7 +61,7 @@ bin/run-in-docker example/harmony-operation.json
 
 As with the tests, you can run using a local repo for the Harmony Service Library:
 ```
-LOCAL_SVCLIB_DIR=/path/to/harmony-service-lib-py bin/run-in-docker example/harmony-operation.json
+LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/run-in-docker example/harmony-operation.json
 ```
 
 NOTE: The steps above that use a local clone of the Harmony Service Library repo don't copy
@@ -72,7 +72,7 @@ Service Library repo copied into it, as you did above, specify its location when
 building the image:
 
 ```
-LOCAL_SVCLIB_DIR=/path/to/harmony-service-lib-py bin/build-image
+LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/build-image
 ```
 
 Now the local harmony/netcdf-to-zarr:latest Docker image will contain the local version
@@ -122,7 +122,7 @@ want to test changes to it along with this service, install the `harmony-service
 Install it using pip and the path to the local clone of the service library:
 
 ```
-pip install -e /path/to/harmony-service-lib-py
+pip install -e ../harmony-service-lib-py
 ```
 
 Now any changes made to that local repo will be visible in this project when you run tests, etc.
