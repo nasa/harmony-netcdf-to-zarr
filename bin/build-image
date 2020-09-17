@@ -14,7 +14,7 @@ if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
   LOCAL_SVCLIB_DIR=$(realpath $LOCAL_SVCLIB_DIR)
   LOCAL_SVCLIB=harmony-service-lib.tgz
-  tar -czvf ${LOCAL_SVCLIB} -C ${LOCAL_SVCLIB_DIR} .
+  tar -czv --exclude-vcs --exclude-ignore=${LOCAL_SVCLIB_DIR}/.gitignore -f ${LOCAL_SVCLIB} -C ${LOCAL_SVCLIB_DIR} .
   docker build -f Dockerfile.local-service-lib \
     --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
     --network host \
