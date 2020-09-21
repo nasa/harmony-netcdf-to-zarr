@@ -14,13 +14,13 @@ compatibility.
 
 ### Setup
 
-#### Docker
+* Docker
 
 It is possible to develop and run this service locally using only Docker.  This is the recommended option
 for validation and small changes. Install [Docker](https://www.docker.com/get-started) on your development
 machine.
 
-#### Environment file
+* Environment file
 
 This service uses the 
 [harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse), 
@@ -32,6 +32,27 @@ deployment), use the example `.env` file in this repo:
     $ cp example/dotenv .env
 
 and update the `.env` with the correct values.
+
+* Python & Project Dependencies (Optional)
+
+If you would like to do local development outside of Docker, install Python, create a Python virtualenv, 
+and install the project dependencies.
+
+If you have [pyenv](https://github.com/pyenv/pyenv) and
+[pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) installed (recommended), install Python and
+create a virtualenv:
+
+    $ pyenv install 3.7.4
+    $ pyenv virtualenv 3.7.4 harmony-ntz
+    $ pyenv activate harmony-ntz
+    $ pyenv version > .python-version
+
+The last step above creates a local .python-version file which will be automatically activated when cd'ing into the
+directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above).
+
+Install project dependencies:
+
+    $ pip install -r requirements/core.txt -r requirements/dev.txt
 
 NOTE: All steps in this README which install dependencies need to be performed while on the NASA VPN
 in order to download and install the Harmony Service Lib, which is published on the
@@ -87,11 +108,7 @@ You can now run a workflow in your local Harmony stack and it will execute using
 
 *With local Harmony Service Lib changes*:
 
-When following the steps above that point at a local copy of the Harmony Service Lib, the
-underlying Docker image for this service does not change--the local Harmony Service Lib directory
-is mounted into the running container.
-
-Consequently, to run this service in Harmony *with* a local copy of the Service Lib, build
+To run this service in Harmony *with* a local copy of the Service Lib, build
 the image, but specify the location of the local Harmony Service Lib clone:
 
     $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/build-image
@@ -102,33 +119,17 @@ include any further changes to the Harmony Service Lib or this service.
 
 ### Development without Docker
 
-#### Setup
+#### Testing & running the Service Independently
 
-Prerequisites:
-  - Python 3.7+, ideally installed via a virtual environment such as `pyenv`
-  - Common compilers and build tools such as `gcc`, `g++`, and `make` as required
-Optional:
-  - [harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse) checked out in a peer directory
+Run tests with coverage reports:
 
-Copy [example/dotenv](example/dotenv) to `.env` (`cp example/dotenv .env`) and set variables according
-to the instructions in the file.
+    $ bin/test
 
-If you have [pyenv](https://github.com/pyenv/pyenv) and [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) installed (recommended),
-install Python and create a virtualenv:
+Run an example:
 
-    $ pyenv install 3.7.4
-    $ pyenv virtualenv 3.7.4 harmony-ntz
-    $ pyenv activate harmony-ntz
-    $ pyenv version > .python-version
+    $ dotenv run python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
 
-The last step above creates a local .python-version file which will be automatically activated when cd'ing into the
-directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above).
-
-Install project dependencies:
-
-    $ pip install -r requirements/core.txt -r requirements/dev.txt
-
-### Installing `harmony-service-lib-py` in Development Mode
+#### Installing `harmony-service-lib-py` in Development Mode
 
 You may be concurrently developing on this service as well as the `harmony-service-lib-py`. If so, and you 
 want to test changes to it along with this service, install the `harmony-service-lib-py` in 'development mode'. 
@@ -140,14 +141,3 @@ pip install -e ../harmony-service-lib-py
 
 Now any changes made to that local repo will be visible in this project when you run tests, etc.
 
-#### Common tasks
-
-Run tests with coverage reports:
-```
-bin/test
-```
-
-Run an example:
-```
-dotenv run python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "`cat example/harmony-operation.json`"
-```
