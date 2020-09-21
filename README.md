@@ -14,13 +14,13 @@ compatibility.
 
 ### Setup
 
-* Docker
+#### Docker
 
 It is possible to develop and run this service locally using only Docker.  This is the recommended option
 for validation and small changes. Install [Docker](https://www.docker.com/get-started) on your development
 machine.
 
-* Environment file
+#### Environment file
 
 This service uses the 
 [harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse), 
@@ -33,7 +33,7 @@ deployment), use the example `.env` file in this repo:
 
 and update the `.env` with the correct values.
 
-* Python & Project Dependencies (Optional)
+#### Python & Project Dependencies (Optional)
 
 If you would like to do local development outside of Docker, install Python, create a Python virtualenv, 
 and install the project dependencies.
@@ -141,3 +141,4 @@ pip install -e ../harmony-service-lib-py
 
 Now any changes made to that local repo will be visible in this project when you run tests, etc.
 
+Finally, you can test & run the service in Harmony just as shown in the `Development with Docker` section above.
