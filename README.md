@@ -9,76 +9,96 @@ to work on NetCDF granules.  It ought to work with any other file type that can 
 `h5netcdf` driver.  This includes some HDF5 EOSDIS datasets.  Individual collections must be tested to ensure
 compatibility.
 
-## Environment
-
-Uses variables as defined in
-[harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse)
-
-`STAGING_BUCKET` and `STAGING_PATH` are required. `EDL_USERNAME` and `EDL_PASSWORD` are
-required for any data behind Earthdata Login
 
 ## Development
 
-### Development with Docker
+### Setup
+
+#### Docker
 
 It is possible to develop and run this service locally using only Docker.  This is the recommended option
-for validation and small changes.
+for validation and small changes. Install [Docker](https://www.docker.com/get-started) on your development
+machine.
 
-#### Setup
+#### Environment file
 
-Prerequisites:
-  - Docker
+This service uses the 
+[harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse), 
+and requires that certain environment variables be set, as shown in the Harmony Service Lib README. For example,
+`STAGING_BUCKET` and `STAGING_PATH` are required, and `EDL_USERNAME` and `EDL_PASSWORD` are required for any
+data behind Earthdata Login. For local testing (not integrated into Harmony in a dev environment or AWS
+deployment), use the example `.env` file in this repo:
 
-Copy [example/dotenv](example/dotenv) to `.env` (`cp example/dotenv .env`) and set variables according
-to the instructions in the file.
+    $ cp example/dotenv .env
 
-#### Common tasks
+and update the `.env` with the correct values.
 
-NOTE: All steps which install dependencies need to be performed while on the NASA VPN.
+NOTE: All steps in this README which install dependencies need to be performed while on the NASA VPN
+in order to download and install the Harmony Service Lib, which is published on the
+[Nexus artifact repository](https://maven.earthdata.nasa.gov/).
 
-Build new runtime and test images:
-```
-bin/build-image
-bin/build-test-image
-```
+### Development with Docker
 
-Run tests with coverage reports.  This will reflect local changes to this repo.
-```
-bin/test-in-docker
-```
+#### Testing & Running the Service Independently
 
-Run tests using a local repo for the Harmony Service Library:
-```
-LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/test-in-docker
-```
+To run unit tests, coverage reports, or run the service on a sample message _outside_ of the 
+entire Harmony stack, start by building new runtime and test images:
 
-Run an example using the built Docker container and contents of [example/harmony-operation.json](example/harmony-operation.json)
-as input.  This will reflect local changes to this repo, as well as any made in
-harmony-service-lib-py if it has been installed in 'development mode' (see below).
-```
-bin/run-in-docker example/harmony-operation.json
-```
+*IMPORTANT*: Be sure to do these steps in a shell in which has *not* been updated to point to
+the Minikube Docker daemon. This is usually done via a shell `eval` command. Doing so will 
+cause tests and the service to fail due to limitations in Minikube.
 
-As with the tests, you can run using a local repo for the Harmony Service Library:
-```
-LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/run-in-docker example/harmony-operation.json
-```
+    $ bin/build-image
+    $ bin/build-test-image
 
-NOTE: The steps above that use a local clone of the Harmony Service Library repo don't copy
-the contents of that local repo into the image. Instead, they mount the local directory
-into the running container so that any changes in the repo are reflected in the container.
-So, if you'd like to build a Docker image that *does* have the contents of the local Harmony
-Service Library repo copied into it, as you did above, specify its location when
-building the image:
+Run unit tests and generate overage reports. This will mount the local directory into the 
+container and run the unit tests. So all tests will reflect local changes to the service.
 
-```
-LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/build-image
-```
+    $ bin/test-in-docker
 
-Now the local harmony/netcdf-to-zarr:latest Docker image will contain the local version
-of both the Harmony Service Library and this service. This also means that the image
-needs to be rebuilt (using the same command) to test changes to this service or the
-Harmony Service Library.
+You may be concurrently making changes to the Harmony Service Lib. To run the unit tests using
+the local clone of that Harmony Service Lib and any changes made to it:
+
+    $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/test-in-docker
+
+Finally, run the service using an example Harmony operation request 
+([example/harmony-operation.json](example/harmony-operation.json) as input.  This will reflect
+local changes to this repo, but will not include local changes to the Harmony Service Lib.
+
+    $ bin/run-in-docker example/harmony-operation.json
+
+To run the example and also include local Harmony Service Lib changes:
+
+    $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/run-in-docker example/harmony-operation.json
+
+#### Testing & Running the Service in Harmony
+
+*Without local Harmony Service Lib changes*:
+
+Be sure your environment is pointed to the Minikube Docker daemon:
+
+    $ eval $(minikube docker-env)
+
+Build the image:
+
+    $ bin/build-image
+
+You can now run a workflow in your local Harmony stack and it will execute using this image.
+
+*With local Harmony Service Lib changes*:
+
+When following the steps above that point at a local copy of the Harmony Service Lib, the
+underlying Docker image for this service does not change--the local Harmony Service Lib directory
+is mounted into the running container.
+
+Consequently, to run this service in Harmony *with* a local copy of the Service Lib, build
+the image, but specify the location of the local Harmony Service Lib clone:
+
+    $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/build-image
+
+You can now run a workflow in your local Harmony stack and it will execute using this image.
+Note that this also means that the image needs to be rebuilt (using the same command) to
+include any further changes to the Harmony Service Lib or this service.
 
 ### Development without Docker
 
@@ -87,33 +107,26 @@ Harmony Service Library.
 Prerequisites:
   - Python 3.7+, ideally installed via a virtual environment such as `pyenv`
   - Common compilers and build tools such as `gcc`, `g++`, and `make` as required
-  - A local copy of the code
-  - Localstack (optional, recommended)
 Optional:
   - [harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse) checked out in a peer directory
 
 Copy [example/dotenv](example/dotenv) to `.env` (`cp example/dotenv .env`) and set variables according
 to the instructions in the file.
 
-NOTE: Installing dependencies must be done while connected to the NASA VPN.
-
 If you have [pyenv](https://github.com/pyenv/pyenv) and [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) installed (recommended),
 install Python and create a virtualenv:
 
-```
-pyenv install 3.7.4
-pyenv virtualenv 3.7.4 harmony-ntz
-pyenv activate harmony-ntz
-pyenv version > .python-version
-```
+    $ pyenv install 3.7.4
+    $ pyenv virtualenv 3.7.4 harmony-ntz
+    $ pyenv activate harmony-ntz
+    $ pyenv version > .python-version
 
 The last step above creates a local .python-version file which will be automatically activated when cd'ing into the
 directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above).
 
 Install project dependencies:
-```
-pip install -r requirements/core.txt -r requirements/dev.txt
-```
+
+    $ pip install -r requirements/core.txt -r requirements/dev.txt
 
 ### Installing `harmony-service-lib-py` in Development Mode
 
