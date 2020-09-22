@@ -13,18 +13,20 @@
 
 set -ex
 
+scriptdir=$(dirname "$0")
+
 # Import variables from .env file if one exists
 if [ -f .env ]; then
   args="$args --env-file=.env"
 fi
 
-cmd="python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$(cat $@)'"
+cmd="python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$($scriptdir/replace.sh $@)'"
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
   LOCAL_SVCLIB_DIR=$(realpath $LOCAL_SVCLIB_DIR)
   svclib_volume="-v ${LOCAL_SVCLIB_DIR}:/opt/harmony-service-lib-py"
-  cmd="pip install --user -e /opt/harmony-service-lib-py && python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$(cat $@)'"
+  cmd="pip install --user -e /opt/harmony-service-lib-py && python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$($scriptdir/replace.sh $@)'"
 fi
 
 docker run --rm -it \

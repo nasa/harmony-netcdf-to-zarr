@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 # This script mounts the contents of the current directory into the Harmony docker image and runs the test
 # suite.  It is meant to allow development and testing without repeatedly rebuilding the docker image.  To
 # run a completely clean container using only what is in the image, as will be done in CI environments,
@@ -12,6 +10,8 @@ set -e
 # of a local clone of the `harmony-service-lib-py` repo, it will be mounted
 # into the running container and installed so that all tests will also use
 # any changes in that local repo.
+
+set -e
 
 cmd="bin/test"
 
