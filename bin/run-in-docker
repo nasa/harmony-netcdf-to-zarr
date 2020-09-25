@@ -1,30 +1,39 @@
 #!/bin/bash
 
-# This script mounts the contents of the current directory, and optionally the Python library in a peer
-# directory into the Harmony docker image and runs it.  It is meant to allow development and testing
-# without repeatedly rebuilding the docker image.  To run a completely clean container using only what
-# is in the image, as will be done in deployed environments, run
+# This script mounts the contents of the current directory into the Harmony docker image and runs it.
+# It is meant to allow development and testing without repeatedly rebuilding the docker image.  To
+# run a completely clean container using only what is in the image, as will be done in deployed
+# environments, run
 # `docker run --rm -it --env-file=.env harmony/netcdf-to-zarr`
+
+# If the optional environment variable LOCAL_SVCLIB_DIR is set to the directory
+# of a local clone of the `harmony-service-lib-py` repo, it will be mounted
+# into the running container and installed so that all tests will also use
+# any changes in that local repo.
 
 set -ex
 
-find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
-
-# CLI flags.  Mount the current directory into the docker container's working directory
-args="-v $(pwd):/home"
-
-# If a peer directory exists for the Harmony python library, also mount it into the container, otherwise
-# it will use the version installed when the container was built
-if [ -d ../harmony-service-lib-py ]; then
-  (cd ../harmony-service-lib-py && make clean)
-  args="$args -v $(pwd)/../harmony-service-lib-py/harmony:/usr/lib/harmony-service-lib-py/harmony"
-  args="$args -e PYTHONPATH=/usr/lib/harmony-service-lib-py"
-fi
+scriptdir=$(dirname "$0")
 
 # Import variables from .env file if one exists
 if [ -f .env ]; then
   args="$args --env-file=.env"
 fi
 
-docker run --rm -it $args harmony/netcdf-to-zarr "$@"
+cmd="python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$($scriptdir/replace.sh $@)'"
 
+if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
+then
+  LOCAL_SVCLIB_DIR=$(realpath $LOCAL_SVCLIB_DIR)
+  svclib_volume="-v ${LOCAL_SVCLIB_DIR}:/opt/harmony-service-lib-py"
+  cmd="pip install --user -e /opt/harmony-service-lib-py && python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$($scriptdir/replace.sh $@)'"
+fi
+
+docker run --rm -it \
+  --network host \
+  $args \
+  -v $(pwd):/opt/harmony-netcdf-to-zarr \
+  ${svclib_volume} \
+  --entrypoint= \
+  harmony/netcdf-to-zarr \
+  bash -c "${cmd}"

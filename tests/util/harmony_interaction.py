@@ -10,8 +10,10 @@ from urllib import parse
 MOCK_ENV = dict(
     ENV='test',
     EDL_USERNAME='fake',
-    EDL_PASSWORD='fake'
+    EDL_PASSWORD='fake',
+    SHARED_SECRET_KEY='XYZZYXYZZYXYZZYXYZZYXYZZYXYZZYXY'
 )
+
 
 def mock_message_for(*files):
     """
@@ -26,11 +28,11 @@ def mock_message_for(*files):
     granules = []
     for i, f in enumerate(files):
         granules.append(dict(
-            id = "G00%d-TEST" % (i,),
-            name = f.split('/')[-1],
-            url = "file://" + f,
-            temporal = dict(start='2020-01-01T00:00:00.000Z', end='2020-01-02T00:00:00.000Z'),
-            bbox = [-11.1, -22.2, 33.3, 44.4]
+            id="G00%d-TEST" % (i,),
+            name=f.split('/')[-1],
+            url="file://" + f,
+            temporal=dict(start='2020-01-01T00:00:00.000Z', end='2020-01-02T00:00:00.000Z'),
+            bbox=[-11.1, -22.2, 33.3, 44.4]
         ))
     return json.dumps(dict(
         user='jdoe',
@@ -38,6 +40,7 @@ def mock_message_for(*files):
         stagingLocation='s3://example-bucket/public/harmony/netcdf-to-zarr/example-uuid/',
         sources=[dict(collection="C000-TEST", granules=granules)]
     ))
+
 
 def parse_callbacks(_callback_post):
     """
@@ -64,6 +67,6 @@ def parse_callbacks(_callback_post):
     for args, kwargs in _callback_post.call_args_list:
         url = args[0]
         query = parse.urlsplit(url).query
-        parsed_query = { k: v[0] for k,v in parse.parse_qs(query).items() }
+        parsed_query = {k: v[0] for k, v in parse.parse_qs(query).items()}
         result.append(parsed_query)
     return result

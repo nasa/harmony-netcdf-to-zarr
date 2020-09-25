@@ -2,24 +2,29 @@
 Tests the Harmony adapter, including end-to-end tests of Harmony CLI invocations
 """
 
+import argparse
+import logging
+import os
+import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
-from moto import mock_s3
 
 import boto3
-import os
 import s3fs
 import zarr
-import textwrap
-import argparse
-import tempfile
-
-from .util.file_creation import create_full_dataset, ROOT_METADATA_VALUES
-from .util.harmony_interaction import MOCK_ENV, mock_message_for, parse_callbacks
+from harmony.message import Message
+from moto import mock_s3
 
 from harmony_netcdf_to_zarr.__main__ import main
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
-from harmony.message import Message
+
+from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset
+from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
+                                       parse_callbacks)
+
+logger = logging.getLogger()
+
 
 class TestAdapter(unittest.TestCase):
     """
@@ -34,7 +39,7 @@ class TestAdapter(unittest.TestCase):
         Full end-to-end test of the adapter from call to `main` to Harmony callbacks, including
         ensuring the contents of the file are correct.  Mocks S3 interactions using @mock_s3.
         """
-        conn = boto3.resource('s3', region_name='us-west-2')
+        conn = boto3.resource('s3')
         conn.create_bucket(Bucket='example-bucket')
 
         netcdf_file = create_full_dataset()
@@ -61,9 +66,9 @@ class TestAdapter(unittest.TestCase):
         self.assertTrue(callbacks[1]['item[href]'].endswith('.zarr'))
 
         # Now calls back with spatial and temporal if present in the incoming message
-        self.assertEqual(callbacks[0]['item[temporal]'], '2020-01-01T00:00:00.000Z,2020-01-02T00:00:00.000Z')
+        self.assertEqual(callbacks[0]['item[temporal]'],
+                         '2020-01-01T00:00:00.000Z,2020-01-02T00:00:00.000Z')
         self.assertEqual(callbacks[0]['item[bbox]'], '-11.1,-22.2,33.3,44.4')
-
 
         # Open the Zarr file that the adapter called back with
         zarr_location = callbacks[0]['item[href]']
@@ -152,7 +157,7 @@ class TestAdapter(unittest.TestCase):
 
         callbacks = parse_callbacks(_callback_post)
         self.assertEqual(len(callbacks), 1)
-        self.assertEqual(callbacks[0], { 'error': 'Could not convert granule to Zarr: G000-TEST' })
+        self.assertEqual(callbacks[0], {'error': 'Could not convert granule to Zarr: G000-TEST'})
 
         self.assertIsNotNone(exception)
         self.assertIs('NetCDF: Unknown file format' in str(exception), True)

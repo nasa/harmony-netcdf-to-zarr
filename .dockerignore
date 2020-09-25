@@ -1,8 +1,11 @@
 example
-test
 coverage.xml
 .coverage
 **/*.log
 **/tmp
 .git
 .gitignore
+__pycache__
+*.pyc
+*.pyo
+.python-version

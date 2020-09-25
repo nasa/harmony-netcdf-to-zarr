@@ -1,20 +1,21 @@
 #!/usr/bin/env python
 
-from netCDF4 import Dataset
-import numpy as np
-import uuid
-import datetime
 import tempfile
+import uuid
+
+import numpy as np
+from netCDF4 import Dataset
 
 ROOT_METADATA_VALUES = dict(
-    Conventions = "CF-1.6",
-    title = "Test NetCDF 4",
-    summary = "Test NetCDF 4 file with small data and attributes like a swath",
-    id = "harmony_test_netcdf4",
-    naming_authority = "gov.nasa.earthdata.harmony",
-    product_version = 1,
-    uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, "harmony_test_netcdf4"))
+    Conventions="CF-1.6",
+    title="Test NetCDF 4",
+    summary="Test NetCDF 4 file with small data and attributes like a swath",
+    id="harmony_test_netcdf4",
+    naming_authority="gov.nasa.earthdata.harmony",
+    product_version=1,
+    uuid=str(uuid.uuid5(uuid.NAMESPACE_URL, "harmony_test_netcdf4"))
 )
+
 
 def create_full_dataset(filename=None):
     filename = filename or tempfile.mkstemp()[1]
@@ -67,26 +68,22 @@ def create_full_dataset(filename=None):
 
         # Define the data as a titled square.  Tilt your head 45 degrees to the right to see it.
         lats[:, :] = [
-            [  0.0,  5.5, 11.0],
-            [ -5.5,  0.0,  5.5],
+            [0.0,  5.5, 11.0],
+            [-5.5,  0.0,  5.5],
             [-11.0, -5.5,  0.0]
         ]
         lons[:, :] = np.rot90(lats, 3, axes=(0, 1))
 
-        times[0] = 166536 # January 1st 2020
+        times[0] = 166536  # January 1st 2020
 
         # Data consists of values whose maximum points at one corner of the square.  The North
         # variable's maximum is at the northernmost corner, West at the westernmost, etc.
         n_var[0, :, :] = [
-            [  4,  8, 16 ],
-            [  0,  4,  8 ],
-            [  0,  0,  4 ]
+            [4,  8, 16],
+            [0,  4,  8],
+            [0,  0,  4]
         ]
         w_var[0, :, :] = np.rot90(n_var[0], 1, axes=(0, 1))
         s_var[0, :, :] = np.rot90(n_var[0], 2, axes=(0, 1))
         e_var[0, :, :] = np.rot90(n_var[0], 3, axes=(0, 1))
     return filename
-
-
-if __name__ == '__main__':
-    print(create(sys.argv[1]))

@@ -7,12 +7,14 @@ Service adapter for converting NetCDF4 to Zarr
 """
 
 from os import environ
+
 import harmony
-import zarr
 import s3fs
+
 from .convert import netcdf_to_zarr
 
 region = environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
+
 
 def make_localstack_s3fs():
     host = environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
@@ -24,8 +26,10 @@ def make_localstack_s3fs():
             region_name=region,
             endpoint_url='http://%s:4572' % (host)))
 
+
 def make_s3fs():
     return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
+
 
 class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
     """
@@ -44,11 +48,8 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
         """
         Downloads, translates to Zarr, then re-uploads granules
         """
-        logger = self.logger
-
         granules = self.message.granules
 
-        result = None
         for i, granule in enumerate(granules):
             try:
                 self.download_granules([granule])
@@ -58,10 +59,13 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
                 netcdf_to_zarr(granule.local_filename, store)
 
                 progress = int(100 * (i + 1) / len(granules))
-                self.async_add_url_partial_result(root, title=name, mime='application/x-zarr', progress=progress, source_granule=granule)
-            except:
+                self.async_add_url_partial_result(root, title=name, mime='application/x-zarr',
+                                                  progress=progress, source_granule=granule)
+            except BaseException:
                 self.completed_with_error('Could not convert granule to Zarr: ' + granule.id)
-                raise # We could opt to continue when things are known-stable.  For now, avoid downloading just to fail repeatedly
+                # We could opt to continue when things are known-stable.  For now, avoid
+                # downloading just to fail repeatedly
+                raise
             finally:
                 # Clean up after each granule to avoid disk space issues
                 self.cleanup()

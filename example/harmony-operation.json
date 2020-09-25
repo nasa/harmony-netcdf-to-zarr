@@ -1,7 +1,7 @@
 {
   "user": "jdoe",
   "callback": "http://localhost/some-path",
-  "stagingLocation": "s3://example-bucket/public/harmony/netcdf-to-zarr/example-uuid/",
+  "stagingLocation": "s3://${STAGING_BUCKET}/public/harmony/netcdf-to-zarr/example-uuid/",
   "sources": [
     {
       "collection": "C1233860183-EEDTEST",
