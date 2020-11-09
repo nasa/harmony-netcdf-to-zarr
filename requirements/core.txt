@@ -1,7 +1,7 @@
 --extra-index-url https://maven.earthdata.nasa.gov/repository/python-repo/simple/
 
 boto3 ~= 1.14
-harmony-service-lib ~= 0.0.21
+harmony-service-lib ~= 0.0.27
 netCDF4 ~= 1.5
 numpy ~= 1.18.0
 s3fs ~= 0.4.0

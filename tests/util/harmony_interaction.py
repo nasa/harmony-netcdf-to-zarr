@@ -38,7 +38,8 @@ def mock_message_for(*files):
         user='jdoe',
         callback='http://localhost/fake',
         stagingLocation='s3://example-bucket/public/harmony/netcdf-to-zarr/example-uuid/',
-        sources=[dict(collection="C000-TEST", granules=granules)]
+        sources=[dict(collection="C000-TEST", granules=granules)],
+        format=dict(mime='application/x-zarr')
     ))
 
 
