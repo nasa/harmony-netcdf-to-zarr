@@ -94,7 +94,7 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
             asset = next(v for k, v in item.assets.items() if 'data' in (v.roles or []))
             input_filename = download(asset.href, workdir, logger=self.logger, access_token=self.message.accessToken)
 
-            name = generate_output_filename(input_filename, ext='.zarr')
+            name = generate_output_filename(asset.href, ext='.zarr')
             root = self.message.stagingLocation + name
 
             try:
