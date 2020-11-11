@@ -62,11 +62,11 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
         Downloads, translates to Zarr, then re-uploads granules
         """
         format = self.message.format
-        if format and format.mime and format.mime in ['application/zarr', 'application/x-zarr']:
-            format.process('mime')
-            return super().invoke()
-        self.logger.warn('The zarr formatter cannot convert to %s, skipping' % (format.mime,))
-        return self.catalog
+        if not format or not format.mime or format.mime not in ['application/zarr', 'application/x-zarr']:
+            self.logger.error('The Zarr formatter cannot convert to %s, skipping' % (format.mime,))
+            raise ZarrException('Request failed due to an incorrect service workflow')
+        format.process('mime')
+        return super().invoke()
 
     def process_item(self, item, source):
         """
