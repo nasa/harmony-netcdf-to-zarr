@@ -3,4 +3,4 @@ FROM harmony/netcdf-to-zarr:latest
 ARG LOCAL_SVCLIB
 
 ADD ${LOCAL_SVCLIB} /opt/harmony-service-lib-py
-RUN pip install --user -e /opt/harmony-service-lib-py
+RUN pip install --user /opt/harmony-service-lib-py/*.whl

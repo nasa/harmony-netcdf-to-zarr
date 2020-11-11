@@ -12,12 +12,15 @@ docker build --network host -t ${image}:${tag} .
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
-  LOCAL_SVCLIB_DIR=$(realpath $LOCAL_SVCLIB_DIR)
-  LOCAL_SVCLIB=harmony-service-lib.tgz
-  tar -czv --exclude-vcs --exclude-ignore=${LOCAL_SVCLIB_DIR}/.gitignore -f ${LOCAL_SVCLIB} -C ${LOCAL_SVCLIB_DIR} .
+  LOCAL_SVCLIB=deps/harmony-service-lib
+  mkdir -p "${LOCAL_SVCLIB}"
+  pushd "${LOCAL_SVCLIB_DIR}"
+  make build
+  popd
+  mv "${LOCAL_SVCLIB_DIR}"/dist/* "${LOCAL_SVCLIB}"
   docker build -f Dockerfile.local-service-lib \
     --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
     --network host \
     -t ${image}:${tag} .
-  rm ${LOCAL_SVCLIB}
+  rm -r ${LOCAL_SVCLIB}
 fi

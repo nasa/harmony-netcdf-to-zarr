@@ -107,7 +107,7 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
                 raise ZarrException('Could not convert file to Zarr: %s' % (filename))
 
             # Update the STAC record
-            result.assets['data'] = Asset(root, title=name, media_type='text/plain', roles=['data'])
+            result.assets['data'] = Asset(root, title=name, media_type='application/x-zarr', roles=['data'])
 
             # Return the STAC record
             return result
