@@ -157,7 +157,9 @@ class TestAdapter(unittest.TestCase):
 
         callbacks = parse_callbacks(_callback_post)
         self.assertEqual(len(callbacks), 1)
-        self.assertEqual(callbacks[0], {'error': 'Could not convert granule to Zarr: G000-TEST'})
+        self.assertEqual(callbacks[0], {'error': 'Could not convert file to Zarr: %s' % (filename.split('/').pop())})
 
         self.assertIsNotNone(exception)
-        self.assertIs('NetCDF: Unknown file format' in str(exception), True)
+
+        # For services that fail with a human-readable message, we emit a generic exception after callback / log
+        self.assertEqual('Service operation failed', str(exception))

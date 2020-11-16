@@ -7,10 +7,14 @@ Service adapter for converting NetCDF4 to Zarr
 """
 
 from os import environ
+import shutil
+from tempfile import mkdtemp
+
+import s3fs
+from pystac import Asset
 
 import harmony
-import s3fs
-
+from harmony.util import generate_output_filename, download, HarmonyException
 from .convert import netcdf_to_zarr
 
 region = environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
@@ -31,6 +35,15 @@ def make_s3fs():
     return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
 
 
+class ZarrException(HarmonyException):
+    """
+    Exception thrown during Zarr conversion
+    """
+
+    def __init__(self, message=None):
+        super().__init__(message, 'harmony/netcdf-to-zarr')
+
+
 class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
     """
     Translates NetCDF4 to Zarr
@@ -48,27 +61,56 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
         """
         Downloads, translates to Zarr, then re-uploads granules
         """
-        granules = self.message.granules
+        format = self.message.format
+        if not format or not format.mime or format.mime not in ['application/zarr', 'application/x-zarr']:
+            self.logger.error('The Zarr formatter cannot convert to %s, skipping' % (format.mime,))
+            raise ZarrException('Request failed due to an incorrect service workflow')
+        format.process('mime')
+        return super().invoke()
 
-        for i, granule in enumerate(granules):
+    def process_item(self, item, source):
+        """
+        Converts an input STAC Item's data into Zarr, returning an output STAC item
+
+        Parameters
+        ----------
+        item : pystac.Item
+            the item that should be converted
+        source : harmony.message.Source
+            the input source defining the variables, if any, to subset from the item
+
+        Returns
+        -------
+        pystac.Item
+            a STAC item containing the Zarr output
+        """
+        result = item.clone()
+        result.assets = {}
+
+        # Create a temporary dir for processing we may do
+        workdir = mkdtemp()
+        try:
+            # Get the data file
+            asset = next(v for k, v in item.assets.items() if 'data' in (v.roles or []))
+            input_filename = download(asset.href, workdir, logger=self.logger, access_token=self.message.accessToken)
+
+            name = generate_output_filename(asset.href, ext='.zarr')
+            root = self.message.stagingLocation + name
+
             try:
-                self.download_granules([granule])
-                name = self.filename_for_granule(granule, '.zarr')
-                root = self.message.stagingLocation + name
                 store = self.s3.get_mapper(root=root, check=False, create=True)
-                netcdf_to_zarr(granule.local_filename, store)
+                netcdf_to_zarr(input_filename, store)
+            except Exception as e:
+                # Print the real error and convert to user-facing error that's more digestible
+                self.logger.error(e, exc_info=1)
+                filename = asset.href.split('?')[0].rstrip('/').split('/')[-1]
+                raise ZarrException('Could not convert file to Zarr: %s' % (filename))
 
-                progress = int(100 * (i + 1) / len(granules))
-                self.async_add_url_partial_result(root, title=name, mime='application/x-zarr',
-                                                  progress=progress, source_granule=granule)
-            except BaseException:
-                self.completed_with_error('Could not convert granule to Zarr: ' + granule.id)
-                # We could opt to continue when things are known-stable.  For now, avoid
-                # downloading just to fail repeatedly
-                raise
-            finally:
-                # Clean up after each granule to avoid disk space issues
-                self.cleanup()
+            # Update the STAC record
+            result.assets['data'] = Asset(root, title=name, media_type='application/x-zarr', roles=['data'])
 
-        # TODO: (HARMONY-150) If there are multiple granules and the result isn't async ... then what?
-        self.async_completed_successfully()
+            # Return the STAC record
+            return result
+        finally:
+            # Clean up any intermediate resources
+            shutil.rmtree(workdir)
