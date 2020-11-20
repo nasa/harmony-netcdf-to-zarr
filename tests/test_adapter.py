@@ -13,11 +13,12 @@ from unittest.mock import patch
 import boto3
 import s3fs
 import zarr
-from harmony.message import Message
 from moto import mock_s3
 
+from harmony.message import Message
 from harmony_netcdf_to_zarr.__main__ import main
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
+import harmony.util
 
 from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset
 from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
@@ -30,6 +31,8 @@ class TestAdapter(unittest.TestCase):
     """
     Tests the Harmony adapter
     """
+    def setUp(self):
+        self.config = harmony.util.config(validate=False)
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
@@ -46,7 +49,8 @@ class TestAdapter(unittest.TestCase):
         netcdf_file2 = create_full_dataset()
         try:
             message = mock_message_for(netcdf_file, netcdf_file2)
-            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message])
+            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message],
+                 config=self.config)
         finally:
             os.remove(netcdf_file)
             os.remove(netcdf_file2)
@@ -149,7 +153,8 @@ class TestAdapter(unittest.TestCase):
         exception = None
         try:
             message = mock_message_for(filename)
-            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message])
+            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message],
+                 config=self.config)
         except Exception as e:
             exception = e
         finally:
