@@ -43,7 +43,9 @@ class TestAdapter(unittest.TestCase):
         ensuring the contents of the file are correct.  Mocks S3 interactions using @mock_s3.
         """
         conn = boto3.resource('s3')
-        conn.create_bucket(Bucket='example-bucket')
+        conn.create_bucket(
+            Bucket='example-bucket',
+            CreateBucketConfiguration={'LocationConstraint': os.environ['AWS_DEFAULT_REGION']})
 
         netcdf_file = create_full_dataset()
         netcdf_file2 = create_full_dataset()
