@@ -49,8 +49,20 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
     Translates NetCDF4 to Zarr
     """
 
-    def __init__(self, message):
-        super().__init__(message)
+    def __init__(self, message, catalog=None, config=None):
+        """
+        Constructs the adapter
+
+        Parameters
+        ----------
+        message : harmony.Message
+            The Harmony input which needs acting upon
+        catalog : pystac.Catalog
+            A STAC catalog containing the files on which to act
+        config : harmony.util.Config
+            The configuration values for this runtime environment.
+        """
+        super().__init__(message, catalog=catalog, config=config)
 
         if environ.get('USE_LOCALSTACK') == 'true':
             self.s3 = make_localstack_s3fs()
