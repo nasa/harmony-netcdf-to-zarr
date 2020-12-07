@@ -65,8 +65,9 @@ def create_full_dataset(filename=None):
         s_var.coordinates = 'lon lat'
         e_var = ew_grp.createVariable('east', 'u1', ('time', 'ni', 'nj'), zlib=True, fill_value=127)
         e_var.coordinates = 'lon lat'
+        e_var.scale_factor = 2
 
-        # Define the data as a titled square.  Tilt your head 45 degrees to the right to see it.
+        # Define the data as a tilted square.  Tilt your head 45 degrees to the right to see it.
         lats[:, :] = [
             [0.0,  5.5, 11.0],
             [-5.5,  0.0,  5.5],
