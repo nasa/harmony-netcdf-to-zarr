@@ -30,6 +30,7 @@ def netcdf_to_zarr(src, dst):
             dst = zarr.DirectoryStore(dst)
             managed_resources.append(src)
 
+        src.set_auto_maskandscale(False)
         __copy_group(src, zarr.group(dst, overwrite=True))
         zarr.convenience.consolidate_metadata(dst)
 

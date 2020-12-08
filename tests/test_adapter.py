@@ -115,7 +115,8 @@ class TestAdapter(unittest.TestCase):
         self.assertEqual(out['data/vertical/north'][0, 2, 0], 0)
         self.assertEqual(out['data/vertical/south'][0, 2, 0], 16)
         self.assertEqual(out['data/vertical/south'][0, 0, 2], 0)
-        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 16)
+        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 8) # scale_factor = 2
+        self.assertEqual(out['data/horizontal/east'].attrs['scale_factor'], 2)
         self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
         self.assertEqual(out['data/horizontal/west'][0, 0, 0], 16)
         self.assertEqual(out['data/horizontal/west'][0, 2, 2], 0)
