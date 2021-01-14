@@ -5,10 +5,17 @@ set -e
 image="harmony/netcdf-to-zarr"
 tag=${1:-latest}
 
+# source the .env file if it exists
+[[ -f .env ]] && source .env
+DOCKER_ARGS=""
+if [ -n "$DIND" ]; then
+   DOCKER_ARGS="-H ${DOCKER_DAEMON_ADDR}"
+fi
+
 # NOTE: We use the `host` network mode so we can have access to the
 # host VPN connection used for Nexus access.
 
-docker build --network host -t ${image}:${tag} .
+docker $DOCKER_ARGS build --network host -t ${image}:${tag} .
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
@@ -18,7 +25,7 @@ then
   make build
   popd
   mv "${LOCAL_SVCLIB_DIR}"/dist/* "${LOCAL_SVCLIB}"
-  docker build -f Dockerfile.local-service-lib \
+  docker $DOCKER_ARGS build -f Dockerfile.local-service-lib \
     --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
     --network host \
     -t ${image}:${tag} .
