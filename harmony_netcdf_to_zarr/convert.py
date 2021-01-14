@@ -44,6 +44,35 @@ def netcdf_to_zarr(src, dst):
                 pass
 
 
+def scale_attribute(src, attr, scale_factor, add_offset):
+    """
+    Scales an unscaled NetCDF attribute
+
+
+    Parameters
+    ----------
+    src : netCDF4.Variable
+        the source variable to copy
+    attr : collections.Sequence | numpy.ndarray | number
+        the NetCDF variable attribute that needs to be scaled
+    scale_factor : number
+        the number used to multiply unscaled data
+    add_offset : number
+        the number added to unscaled data after multiplied by scale_factor
+    
+    Returns
+    -------
+    list | number
+        the scaled data; either a list of floats or a float scalar
+    """
+    scale_fn = lambda x: float(x * scale_factor + add_offset)
+    unscaled = getattr(src, attr)
+    if isinstance(unscaled, collections.Sequence) or isinstance(unscaled, np.ndarray):
+        return [scale_fn(u) for u in unscaled]
+    else:
+        return scale_fn(unscaled)
+
+
 def __copy_variable(src, dst_group, name):
     """
     Copies the variable from the NetCDF src variable into the Zarr group dst_group, giving
@@ -79,19 +108,14 @@ def __copy_variable(src, dst_group, name):
                                        chunks=tuple(chunks),
                                        dtype=dtype)
 
-    # Assemble scaled NetCDF variable attributes
+    # Apply scale factor and offset to attributes that are not automatically scaled by NetCDF
     scaled = {}
-    unscaled_terms = ['valid_range', 'valid_min', 'valid_max', '_FillValue', 'missing_value']
-    if (hasattr(src, 'scale_factor') and src.scale_factor != 1.0) or \
-       (hasattr(src, 'add_offset') and src.add_offset != 0.0):
-        scale_factor = src.scale_factor if hasattr(src, 'scale_factor') else 1.0
-        add_offset = src.add_offset if hasattr(src, 'add_offset') else 0.0
-        scale_fn = lambda x: float(x * scale_factor + add_offset)
-        for k, v in {t: getattr(src, t) for t in unscaled_terms if hasattr(src, t)}.items():
-            if isinstance(v, collections.Sequence) or isinstance(v, np.ndarray):
-                scaled[k] = [scale_fn(v_) for v_ in v]
-            else:
-                scaled[k] = scale_fn(v)
+    scale_factor = getattr(src, 'scale_factor', 1.0)
+    add_offset = getattr(src, 'add_offset', 0.0)
+    if scale_factor != 1.0 or add_offset != 0.0:
+        unscaled_attributes = ['valid_range', 'valid_min', 'valid_max', '_FillValue', 'missing_value']
+        present_attributes = [attr for attr in unscaled_attributes if hasattr(src, attr)]
+        scaled = {attr: scale_attribute(src, attr, scale_factor, add_offset) for attr in present_attributes}
 
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
     __copy_attrs(src, dst, scaled, _ARRAY_DIMENSIONS=list(src.dimensions))
