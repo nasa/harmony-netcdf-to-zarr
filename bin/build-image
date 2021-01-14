@@ -7,15 +7,15 @@ tag=${1:-latest}
 
 # source the .env file if it exists
 [[ -f .env ]] && source .env
+DOCKER_ARGS=""
+if [ -n "$DIND" ]; then
+   DOCKER_ARGS="-H ${DOCKER_DAEMON_ADDR}"
+fi
 
 # NOTE: We use the `host` network mode so we can have access to the
 # host VPN connection used for Nexus access.
 
-if [ -n "$DIND" ]; then
-  docker -H $DOCKER_DAEMON_ADDR build --network host -t ${image}:${tag} .
-else
-  docker build --network host -t ${image}:${tag} .
-fi
+docker $DOCKER_ARGS build --network host -t ${image}:${tag} .
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
@@ -25,16 +25,9 @@ then
   make build
   popd
   mv "${LOCAL_SVCLIB_DIR}"/dist/* "${LOCAL_SVCLIB}"
-  if [ -n "$DIND" ]; then
-    docker -H $DOCKER_DAEMON_ADDR build -f Dockerfile.local-service-lib \
-      --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
-      --network host \
-      -t ${image}:${tag} .
-  else
-    docker build -f Dockerfile.local-service-lib \
-      --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
-      --network host \
-      -t ${image}:${tag} .
-  fi
+  docker $DOCKER_ARGS build -f Dockerfile.local-service-lib \
+    --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
+    --network host \
+    -t ${image}:${tag} .
   rm -r ${LOCAL_SVCLIB}
 fi
