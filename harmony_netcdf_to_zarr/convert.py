@@ -116,7 +116,7 @@ def __copy_attrs(src, dst, scaled={}, **kwargs):
     """
     attrs = {key: __netcdf_attr_to_python(getattr(src, key)) for key in src.ncattrs()}
     attrs.update(kwargs)
-    attrs = {**attrs, **scaled}
+    attrs.update(scaled)
     attrs.pop('scale_factor', None)
     attrs.pop('add_offset', None)
     dst.attrs.put(attrs)
