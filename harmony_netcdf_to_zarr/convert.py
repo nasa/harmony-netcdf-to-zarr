@@ -31,8 +31,8 @@ def netcdf_to_zarr(src, dst):
             dst = zarr.DirectoryStore(dst)
             managed_resources.append(src)
 
-        src.set_auto_maskandscale(False)
-        src.set_auto_scale(False)  # is this redundant to line above or necessary?
+        src.set_auto_mask(False)
+        src.set_auto_scale(True)
         __copy_group(src, zarr.group(dst, overwrite=True))
         zarr.convenience.consolidate_metadata(dst)
 
@@ -64,55 +64,42 @@ def __copy_variable(src, dst_group, name):
         the copied variable
     """
     chunks = src.chunking()
-    scaled_terms = ['valid_range', 'valid_min', 'valid_max', '_FillValue', 'missing_value']
-    unscaled = {}
-    data = src
-    dtype = np.float64
     if chunks == 'contiguous' or chunks is None:
         chunks = src.shape
     if not chunks and len(src.dimensions) == 0:
         # Treat a 0-dimensional NetCDF variable as a zarr group
         dst = dst_group.create_group(name)
     else:
-        # Unscale data as needed
-        if (hasattr(src, 'scale_factor') and src.scale_factor != 2.0) or \
-           (hasattr(src, 'add_offset') and src.add_offset != 0.0):
-            scale_factor = src.scale_factor if hasattr(src, 'scale_factor') else 1.0
-            add_offset = src.add_offset if hasattr(src, 'add_offset') else 0.0
-            # Assemble and transform unscaled terms
-            for term in scaled_terms:
-                if hasattr(src, term):
-                    unscaled[term] = getattr(src, term)
-            unscaled_fn = lambda x: float(x * scale_factor + add_offset)
-            unscaled_vals = []
-            for k, v in unscaled.items():
-                if isinstance(v, collections.Sequence) or isinstance(v, np.ndarray):
-                    unscaled[k] = [unscaled_fn(vv) for vv in v]
-                    unscaled_vals.extend(v)
-                else:
-                    unscaled[k] = unscaled_fn(v)
-                    unscaled_vals.append(v)
-            unscaled_vals = sorted(unscaled_vals)
-            # Change dtype if terms fit within 32-bit representation
-            if unscaled_vals and \
-               unscaled_vals[0] > np.finfo(np.float32).min and \
-               unscaled_vals[-1] < np.finfo(np.float32).max:
-                dtype = np.float32
-            codec = zarr.codecs.FixedScaleOffset(add_offset, scale_factor, dtype)
-            data = np.reshape(codec.decode(src[:]), src.shape)
+        dtype = np.float64
+        dtype = src.scale_factor.dtype if hasattr(src, 'scale_factor') else dtype
+        dtype = src.add_offset.dtype if hasattr(src, 'add_offset') else dtype
         dst = dst_group.create_dataset(name,
-                                       data=data,
+                                       data=src,
                                        shape=src.shape,
                                        chunks=tuple(chunks),
                                        dtype=dtype)
 
+    # Assemble scaled NetCDF variable attributes
+    scaled = {}
+    unscaled_terms = ['valid_range', 'valid_min', 'valid_max', '_FillValue', 'missing_value']
+    if (hasattr(src, 'scale_factor') and src.scale_factor != 1.0) or \
+       (hasattr(src, 'add_offset') and src.add_offset != 0.0):
+        scale_factor = src.scale_factor if hasattr(src, 'scale_factor') else 1.0
+        add_offset = src.add_offset if hasattr(src, 'add_offset') else 0.0
+        scale_fn = lambda x: float(x * scale_factor + add_offset)
+        for k, v in {t: getattr(src, t) for t in unscaled_terms if hasattr(src, t)}.items():
+            if isinstance(v, collections.Sequence) or isinstance(v, np.ndarray):
+                scaled[k] = [scale_fn(v_) for v_ in v]
+            else:
+                scaled[k] = scale_fn(v)
+
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
-    __copy_attrs(src, dst, unscaled, _ARRAY_DIMENSIONS=list(src.dimensions))
+    __copy_attrs(src, dst, scaled, _ARRAY_DIMENSIONS=list(src.dimensions))
 
     return dst
 
 
-def __copy_attrs(src, dst, unscaled={}, **kwargs):
+def __copy_attrs(src, dst, scaled={}, **kwargs):
     """
     Copies all attributes from the source group or variable into the destination group or variable.
     Converts netCDF4 variable values from their native type (typically Numpy dtypes) into
@@ -129,7 +116,7 @@ def __copy_attrs(src, dst, unscaled={}, **kwargs):
     """
     attrs = {key: __netcdf_attr_to_python(getattr(src, key)) for key in src.ncattrs()}
     attrs.update(kwargs)
-    attrs = {**attrs, **unscaled}
+    attrs = {**attrs, **scaled}
     attrs.pop('scale_factor', None)
     attrs.pop('add_offset', None)
     dst.attrs.put(attrs)
@@ -186,5 +173,4 @@ def __netcdf_attr_to_python(val):
 
 
 if __name__ == '__main__':
-    #netcdf_to_zarr(sys.argv[1], sys.argv[2])
-    netcdf_to_zarr('/workspaces/harmony/air.sig995.mon.mean.nc', '/workspaces/harmony/output.zarr')
+    netcdf_to_zarr(sys.argv[1], sys.argv[2])
