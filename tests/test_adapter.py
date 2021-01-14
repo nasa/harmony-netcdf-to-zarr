@@ -32,6 +32,7 @@ class TestAdapter(unittest.TestCase):
     Tests the Harmony adapter
     """
     def setUp(self):
+        self.maxdiff = None
         self.config = harmony.util.config(validate=False)
 
     @patch.dict(os.environ, MOCK_ENV)
@@ -86,15 +87,15 @@ class TestAdapter(unittest.TestCase):
             /
              ├── data
              │   ├── horizontal
-             │   │   ├── east (1, 3, 3) uint8
-             │   │   └── west (1, 3, 3) uint8
+             │   │   ├── east (1, 3, 3) int64
+             │   │   └── west (1, 3, 3) float64
              │   └── vertical
-             │       ├── north (1, 3, 3) uint8
-             │       └── south (1, 3, 3) uint8
+             │       ├── north (1, 3, 3) float64
+             │       └── south (1, 3, 3) float64
              ├── location
-             │   ├── lat (3, 3) float32
-             │   └── lon (3, 3) float32
-             └── time (1,) int32
+             │   ├── lat (3, 3) float64
+             │   └── lon (3, 3) float64
+             └── time (1,) float64
             """).strip()
         self.assertEqual(str(out.tree()), contents)
 
@@ -115,11 +116,20 @@ class TestAdapter(unittest.TestCase):
         self.assertEqual(out['data/vertical/north'][0, 2, 0], 0)
         self.assertEqual(out['data/vertical/south'][0, 2, 0], 16)
         self.assertEqual(out['data/vertical/south'][0, 0, 2], 0)
-        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 8) # scale_factor = 2
-        self.assertEqual(out['data/horizontal/east'].attrs['scale_factor'], 2)
+        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 16) # scale_factor = 2
         self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
         self.assertEqual(out['data/horizontal/west'][0, 0, 0], 16)
         self.assertEqual(out['data/horizontal/west'][0, 2, 2], 0)
+
+        # 'east' attributes scale_factor removed
+        self.assertFalse(hasattr(out['data/horizontal/east'], 'scale_factor'))
+
+        # 'east' attributes present and scaled
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_range'], [0.0, 50.0])
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_min'], 0.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_max'], 50.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['_FillValue'], 254.0)
+        self.assertFalse(hasattr(out['data/horizontal/east'], 'missing_value'))
 
         # 2D Nested Float Arrays
         self.assertEqual(out['location/lat'][0, 1],  5.5)
