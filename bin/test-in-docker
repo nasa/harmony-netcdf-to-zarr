@@ -14,10 +14,14 @@
 set -e
 
 cmd="bin/test"
+#Read absolute path of a directory
+readpath() {
+  echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
+  }
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
-  LOCAL_SVCLIB_DIR=$(realpath $LOCAL_SVCLIB_DIR)
+  LOCAL_SVCLIB_DIR=$(readpath $LOCAL_SVCLIB_DIR)
   svclib_volume="-v ${LOCAL_SVCLIB_DIR}:/opt/harmony-service-lib-py"
   cmd="pip install --user -e /opt/harmony-service-lib-py && bin/test"
 fi
