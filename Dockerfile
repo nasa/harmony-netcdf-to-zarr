@@ -5,7 +5,7 @@ WORKDIR /opt/harmony-netcdf-to-zarr
 
 # Install static things necessary for building dependencies.
 RUN pip3 install --upgrade pip
-RUN apt-get update && apt-get install -y build-essential
+RUN apt-get update && apt-get install -y build-essential git
 
 # Install Python dependencies
 COPY requirements/core.txt requirements/core.txt
