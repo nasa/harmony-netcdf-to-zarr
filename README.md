@@ -22,8 +22,8 @@ machine.
 
 #### Environment file
 
-This service uses the 
-[harmony-service-lib-py](https://git.earthdata.nasa.gov/projects/HARMONY/repos/harmony-service-lib-py/browse), 
+This service uses the
+[harmony-service-lib-py](https://github.com/nasa/harmony-service-lib-py),
 and requires that certain environment variables be set, as shown in the Harmony Service Lib README. For example,
 `STAGING_BUCKET` and `STAGING_PATH` are required, and `EDL_USERNAME` and `EDL_PASSWORD` are required for any
 data behind Earthdata Login. For local testing (not integrated into Harmony in a dev environment or AWS
@@ -35,7 +35,7 @@ and update the `.env` with the correct values.
 
 #### Python & Project Dependencies (Optional)
 
-If you would like to do local development outside of Docker, install Python, create a Python virtualenv, 
+If you would like to do local development outside of Docker, install Python, create a Python virtualenv,
 and install the project dependencies.
 
 If you have [pyenv](https://github.com/pyenv/pyenv) and
@@ -62,17 +62,17 @@ in order to download and install the Harmony Service Lib, which is published on 
 
 #### Testing & Running the Service Independently
 
-To run unit tests, coverage reports, or run the service on a sample message _outside_ of the 
+To run unit tests, coverage reports, or run the service on a sample message _outside_ of the
 entire Harmony stack, start by building new runtime and test images:
 
 *IMPORTANT*: Be sure to do these steps in a shell in which has *not* been updated to point to
-the Minikube Docker daemon. This is usually done via a shell `eval` command. Doing so will 
+the Minikube Docker daemon. This is usually done via a shell `eval` command. Doing so will
 cause tests and the service to fail due to limitations in Minikube.
 
     $ bin/build-image
     $ bin/build-test-image
 
-Run unit tests and generate overage reports. This will mount the local directory into the 
+Run unit tests and generate overage reports. This will mount the local directory into the
 container and run the unit tests. So all tests will reflect local changes to the service.
 
     $ bin/test-in-docker
@@ -82,7 +82,7 @@ the local clone of that Harmony Service Lib and any changes made to it:
 
     $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/test-in-docker
 
-Finally, run the service using an example Harmony operation request 
+Finally, run the service using an example Harmony operation request
 ([example/harmony-operation.json](example/harmony-operation.json) as input.  This will reflect
 local changes to this repo, but will not include local changes to the Harmony Service Lib.
 
@@ -131,8 +131,8 @@ Run an example:
 
 #### Installing `harmony-service-lib-py` in Development Mode
 
-You may be concurrently developing on this service as well as the `harmony-service-lib-py`. If so, and you 
-want to test changes to it along with this service, install the `harmony-service-lib-py` in 'development mode'. 
+You may be concurrently developing on this service as well as the `harmony-service-lib-py`. If so, and you
+want to test changes to it along with this service, install the `harmony-service-lib-py` in 'development mode'.
 Install it using pip and the path to the local clone of the service library:
 
 ```
