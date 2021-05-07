@@ -1,0 +1,43 @@
+name: Publish to DockerHub
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+env:
+
+  DOCKER_USER: bilts
+  DOCKER_PREFIX: harmonyservices/
+  GIT_PREFIX: nasa/harmony-
+  # Or specify a full image name not derived from the repo
+  # IMAGE_NAME: custom-org/custom-image-name
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build image
+        run: docker build . --file Dockerfile --tag "${GITHUB_REPOSITORY}" --label "runnumber=${GITHUB_RUN_ID}"
+      - name: Log into registry
+        run: echo "${{ secrets.DOCKERHUB }}" | docker login -u "${DOCKER_USER}" --password-stdin
+      - name: Push image
+        run: |
+          IMAGE_NAME=${IMAGE_NAME:-$(echo "${GITHUB_REPOSITORY}" | sed "s,^${GIT_PREFIX},${DOCKER_PREFIX},g")}
+
+          # For tagged versions, translate e.g. "refs/tags/v1.2.3" -> "1.2.3"
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # For the main branch, use "latest" as the version
+          [ "$VERSION" == "main" ] && VERSION=latest
+
+          IMAGE_ID="${IMAGE_NAME}:${VERSION}"
+          echo "Pushing ${IMAGE_ID}"
+          docker tag "${GITHUB_REPOSITORY}" "${IMAGE_ID}"
+          docker push "${IMAGE_ID}"
