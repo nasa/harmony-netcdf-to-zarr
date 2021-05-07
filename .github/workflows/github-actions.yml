@@ -1,0 +1,61 @@
+# This workflow will install python dependencies, run tests, and report code coverage as artifact
+
+name: Github actions
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_and_test:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/core.txt -r requirements/dev.txt
+        
+    - name: Run test
+      run: |
+        bin/test >& test_results-${{ matrix.python-version }}.txt
+
+    - name: Generate coverage report
+      if: ${{ always() }}
+      run: |
+        coverage report -m >& coverage_report-${{ matrix.python-version }}.txt
+        coverage html --dir htmlcov-${{ matrix.python-version }}
+
+    - name: Archive test results
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: test result (for python ${{ matrix.python-version }})
+        path: test_results-${{ matrix.python-version }}.txt
+        
+    - name: Archive code coverage report (plain text)
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: code coverage report (plain text) (for python ${{ matrix.python-version }})
+        path: coverage_report-${{ matrix.python-version }}.txt
+        
+    - name: Archive code coverage report (html)
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: code coverage report (html) (for python ${{ matrix.python-version }})
+        path: htmlcov-${{ matrix.python-version }}/*
