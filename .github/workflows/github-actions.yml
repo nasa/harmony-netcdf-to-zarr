@@ -1,5 +1,5 @@
 # This workflow will install python dependencies, run tests,
-#   and report test results and code coverage as artifact
+#   and report test results and code coverage as artifacts.
 
 name: Github actions
 
