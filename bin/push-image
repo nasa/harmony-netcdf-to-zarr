@@ -2,7 +2,7 @@
 
 set -ex
 
-image="harmony/netcdf-to-zarr"
+image="harmonyservices/netcdf-to-zarr"
 tag=${1:-latest}
 
 region=${AWS_DEFAULT_REGION:-"us-west-2"}

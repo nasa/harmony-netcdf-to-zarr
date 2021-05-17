@@ -1,4 +1,4 @@
-# harmony/netcdf-to-zarr
+# Harmony NetCDF4 to Zarr converter
 
 A Harmony service to convert NetCDF4 files to Zarr files.  Takes conventional Harmony messages and translates
 their input granules to Zarr using xarray.

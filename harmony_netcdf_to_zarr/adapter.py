@@ -41,7 +41,7 @@ class ZarrException(HarmonyException):
     """
 
     def __init__(self, message=None):
-        super().__init__(message, 'harmony/netcdf-to-zarr')
+        super().__init__(message, 'harmonyservices/netcdf-to-zarr')
 
 
 class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):

@@ -1,4 +1,4 @@
-FROM harmony/netcdf-to-zarr:latest
+FROM harmonyservices/netcdf-to-zarr:latest
 
 ARG LOCAL_SVCLIB
 
