@@ -35,7 +35,7 @@ and update the `.env` with the correct values.
 
 #### Python & Project Dependencies (Optional)
 
-If you would like to do local development outside of Docker, install Python, create a Python virtualenv,
+If you would like to do local development outside of Docker, install Python, create a Python virtual environment,
 and install the project dependencies.
 
 If you have [pyenv](https://github.com/pyenv/pyenv) and
@@ -48,15 +48,11 @@ create a virtualenv:
     $ pyenv version > .python-version
 
 The last step above creates a local .python-version file which will be automatically activated when cd'ing into the
-directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above).
+directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above). You can alternatively create your virtual environment using [Python's venv module](https://docs.python.org/3.7/library/venv.html).
 
 Install project dependencies:
 
     $ pip install -r requirements/core.txt -r requirements/dev.txt
-
-NOTE: All steps in this README which install dependencies need to be performed while on the NASA VPN
-in order to download and install the Harmony Service Lib, which is published on the
-[Nexus artifact repository](https://maven.earthdata.nasa.gov/).
 
 ### Development with Docker
 
@@ -83,7 +79,7 @@ the local clone of that Harmony Service Lib and any changes made to it:
     $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/test-in-docker
 
 Finally, run the service using an example Harmony operation request
-([example/harmony-operation.json](example/harmony-operation.json) as input.  This will reflect
+([example/harmony-operation.json](example/harmony-operation.json)) as input.  This will reflect
 local changes to this repo, but will not include local changes to the Harmony Service Lib.
 
     $ bin/run-in-docker example/harmony-operation.json
@@ -96,7 +92,7 @@ To run the example and also include local Harmony Service Lib changes:
 
 *Without local Harmony Service Lib changes*:
 
-Be sure your environment is pointed to the Minikube Docker daemon:
+If using Minikube, be sure your environment is pointed to the Minikube Docker daemon:
 
     $ eval $(minikube docker-env)
 
