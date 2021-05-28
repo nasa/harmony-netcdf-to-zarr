@@ -56,6 +56,9 @@ Install project dependencies:
 
 ### Development with Docker
 
+If you'd rather not build the image locally (as instructed below), 
+you can simply pull the latest: `docker pull harmonyservices/netcdf-to-zarr`
+
 #### Testing & Running the Service Independently
 
 To run unit tests, coverage reports, or run the service on a sample message _outside_ of the
