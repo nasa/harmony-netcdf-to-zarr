@@ -44,11 +44,14 @@ Install project dependencies:
 
 ### Development with Docker
 
-If you'd rather not build the image locally (as instructed below), 
-you can simply pull the latest: `docker pull harmonyservices/netcdf-to-zarr`
+If you'd rather not build the image locally (as instructed below), you can simply pull the latest image: 
+    
+    $ docker pull harmonyservices/netcdf-to-zarr
 
 Some of the [Makefile](./Makefile) targets referenced below include an optional argument that allows us to use a local copy of 
-harmony-service-lib-py (which is useful for concurrent development): `$ make target-name LOCAL_SVCLIB_DIR=../harmony-service-lib-py`
+`harmony-service-lib-py` (which is useful for concurrent development): 
+    
+    $ make target-name LOCAL_SVCLIB_DIR=../harmony-service-lib-py
 
 #### Testing & Running the Service Independently
 
