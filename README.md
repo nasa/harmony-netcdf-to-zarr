@@ -35,8 +35,7 @@ and update the `.env` with the correct values.
 
 #### Python & Project Dependencies (Optional)
 
-If you would like to do local development outside of Docker, install Python (3.7.4), and create a 
-[Python virtual environment](https://github.com/nasa/harmony-service-example/blob/main/ENVHELP.md).
+If you would like to do local development outside of Docker, install Python (3.7.4), and create a Python virtual environment.
 
 Install project dependencies:
 
