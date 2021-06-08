@@ -35,87 +35,59 @@ and update the `.env` with the correct values.
 
 #### Python & Project Dependencies (Optional)
 
-If you would like to do local development outside of Docker, install Python, create a Python virtualenv,
-and install the project dependencies.
-
-If you have [pyenv](https://github.com/pyenv/pyenv) and
-[pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv) installed (recommended), install Python and
-create a virtualenv:
-
-    $ pyenv install 3.7.4
-    $ pyenv virtualenv 3.7.4 harmony-ntz
-    $ pyenv activate harmony-ntz
-    $ pyenv version > .python-version
-
-The last step above creates a local .python-version file which will be automatically activated when cd'ing into the
-directory if pyenv-virtualenv has been initialized in your shell (See the pyenv-virtualenv docs linked above).
+If you would like to do local development outside of Docker, install Python (3.7.4), and create a Python virtual environment.
 
 Install project dependencies:
 
-    $ pip install -r requirements/core.txt -r requirements/dev.txt
-
-NOTE: All steps in this README which install dependencies need to be performed while on the NASA VPN
-in order to download and install the Harmony Service Lib, which is published on the
-[Nexus artifact repository](https://maven.earthdata.nasa.gov/).
+    $ make install
 
 ### Development with Docker
+
+If you'd rather not build the image locally (as instructed below), you can simply pull the latest image: 
+    
+    $ docker pull harmonyservices/netcdf-to-zarr
+
+Some of the [Makefile](./Makefile) targets referenced below include an optional argument that allows us to use a local copy of 
+`harmony-service-lib-py` (which is useful for concurrent development): 
+    
+    $ make target-name LOCAL_SVCLIB_DIR=../harmony-service-lib-py
 
 #### Testing & Running the Service Independently
 
 To run unit tests, coverage reports, or run the service on a sample message _outside_ of the
 entire Harmony stack, start by building new runtime and test images:
 
-*IMPORTANT*: Be sure to do these steps in a shell in which has *not* been updated to point to
+*IMPORTANT*: If Minikube is installed, be sure to do these steps in a shell in which has *not* been updated to point to
 the Minikube Docker daemon. This is usually done via a shell `eval` command. Doing so will
 cause tests and the service to fail due to limitations in Minikube.
 
-    $ bin/build-image
-    $ bin/build-test-image
+    $ make build-image
+    $ make build-test-image
 
 Run unit tests and generate overage reports. This will mount the local directory into the
 container and run the unit tests. So all tests will reflect local changes to the service.
 
-    $ bin/test-in-docker
-
-You may be concurrently making changes to the Harmony Service Lib. To run the unit tests using
-the local clone of that Harmony Service Lib and any changes made to it:
-
-    $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/test-in-docker
+    $ make test-in-docker
 
 Finally, run the service using an example Harmony operation request
-([example/harmony-operation.json](example/harmony-operation.json) as input.  This will reflect
+([example/harmony-operation.json](example/harmony-operation.json)) as input.  This will reflect
 local changes to this repo, but will not include local changes to the Harmony Service Lib.
 
-    $ bin/run-in-docker example/harmony-operation.json
-
-To run the example and also include local Harmony Service Lib changes:
-
-    $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/run-in-docker example/harmony-operation.json
+    $ make run-in-docker
 
 #### Testing & Running the Service in Harmony
 
 *Without local Harmony Service Lib changes*:
 
-Be sure your environment is pointed to the Minikube Docker daemon:
+If using Minikube, be sure your environment is pointed to the Minikube Docker daemon:
 
     $ eval $(minikube docker-env)
 
 Build the image:
 
-    $ bin/build-image
+    $ make build-image
 
 You can now run a workflow in your local Harmony stack and it will execute using this image.
-
-*With local Harmony Service Lib changes*:
-
-To run this service in Harmony *with* a local copy of the Service Lib, build
-the image, but specify the location of the local Harmony Service Lib clone:
-
-    $ LOCAL_SVCLIB_DIR=../harmony-service-lib-py bin/build-image
-
-You can now run a workflow in your local Harmony stack and it will execute using this image.
-Note that this also means that the image needs to be rebuilt (using the same command) to
-include any further changes to the Harmony Service Lib or this service.
 
 ### Development without Docker
 
@@ -123,7 +95,7 @@ include any further changes to the Harmony Service Lib or this service.
 
 Run tests with coverage reports:
 
-    $ bin/test
+    $ make test
 
 Run an example:
 

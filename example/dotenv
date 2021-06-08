@@ -20,3 +20,9 @@ USE_LOCALSTACK=true
 
 # The shared secret key used for encrypting & decrypting data in the Harmony message
 SHARED_SECRET_KEY=_THIS_IS_MY_32_CHARS_SECRET_KEY_
+
+# Set to 'true' if running Docker in Docker and the docker daemon is somewhere other than the current context
+DIND=true
+
+# Indicates where docker commands should find the docker daemon
+DOCKER_DAEMON_ADDR=host.docker.internal:2375
