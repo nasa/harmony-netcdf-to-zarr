@@ -1,33 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
+
+# source the .env file if it exists
+[[ -f .env ]] && source .env
 
 image="harmonyservices/netcdf-to-zarr"
 tag=${1:-latest}
 
-# source the .env file if it exists
-[[ -f .env ]] && source .env
-DOCKER_ARGS=""
-if [ -n "$DIND" ]; then
-   DOCKER_ARGS="-H ${DOCKER_DAEMON_ADDR}"
+if [ -d "deps" ]; then
+  rm -rf deps
+fi
+mkdir deps
+
+SERVICE_LIB_DIR="NO_SUCH_DIR"
+if [ -d "$LOCAL_SVCLIB_DIR" ]; then
+  echo "Using local copy of harmony-service-lib"
+  SERVICE_LIB_DIR=$(basename $LOCAL_SVCLIB_DIR)
+  cp -R $LOCAL_SVCLIB_DIR deps/
 fi
 
-# NOTE: We use the `host` network mode so we can have access to the
-# host VPN connection used for Nexus access.
-
-docker $DOCKER_ARGS build --network host -t ${image}:${tag} .
-
-if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
-then
-  LOCAL_SVCLIB=deps/harmony-service-lib
-  mkdir -p "${LOCAL_SVCLIB}"
-  pushd "${LOCAL_SVCLIB_DIR}"
-  make build
-  popd
-  mv "${LOCAL_SVCLIB_DIR}"/dist/* "${LOCAL_SVCLIB}"
-  docker $DOCKER_ARGS build -f Dockerfile.local-service-lib \
-    --build-arg LOCAL_SVCLIB=${LOCAL_SVCLIB} \
-    --network host \
-    -t ${image}:${tag} .
-  rm -r ${LOCAL_SVCLIB}
+# If we're running Docker in Docker (DIND) then the docker daemon is on the host
+if [ -n "$DIND" ]; then
+  docker -H $DOCKER_DAEMON_ADDR build --build-arg service_lib_dir="$SERVICE_LIB_DIR" -t ${image}:${ag} .
+else
+  docker build --build-arg service_lib_dir="$SERVICE_LIB_DIR" --network host -t ${image}:${tag} .
 fi
