@@ -164,8 +164,13 @@ def __copy_group(src, dst):
     for name, item in src.groups.items():
         __copy_group(item, dst.create_group(name.split('/').pop()))
 
+    procs = []
     for name, item in src.variables.items():
-        __copy_variable(item, dst, name)
+        proc = Process(target=__copy_variable, args=(item, dst, name))
+        proc.start()
+        procs.append(proc)
+    for proc in procs:
+        proc.join()
 
 
 def __netcdf_attr_to_python(val):
