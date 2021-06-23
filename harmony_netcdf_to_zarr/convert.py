@@ -151,6 +151,7 @@ def __copy_group(src, dst):
     """
     Recursively copies the source netCDF4 group into the destination Zarr group, along with
     all sub-groups, variables, and attributes
+    NOTE: the variables will be copied in parallel processes
 
     Parameters
     ----------
