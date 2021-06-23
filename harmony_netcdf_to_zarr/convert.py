@@ -1,5 +1,6 @@
 import collections
 import sys
+from multiprocessing import Process
 
 import numpy as np
 import zarr
