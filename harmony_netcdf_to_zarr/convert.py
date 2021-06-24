@@ -30,7 +30,8 @@ def netcdf_to_zarr(src, dst):
 
         if isinstance(dst, str):
             dst = zarr.DirectoryStore(dst)
-            managed_resources.append(dst)
+            #managed_resources.append(dst)
+            managed_resources.append(src)
 
         src.set_auto_mask(False)
         src.set_auto_scale(True)
