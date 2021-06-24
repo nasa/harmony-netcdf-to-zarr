@@ -100,8 +100,7 @@ def __copy_variable(src, dst_group, name):
         # Treat a 0-dimensional NetCDF variable as a zarr group
         dst = dst_group.create_group(name)
     else:
-        #dtype = src.dtype
-        dtype = np.float64
+        dtype = src.dtype
         dtype = src.scale_factor.dtype if hasattr(src, 'scale_factor') else dtype
         dtype = src.add_offset.dtype if hasattr(src, 'add_offset') else dtype
         dst = dst_group.create_dataset(name,
@@ -166,10 +165,6 @@ def __copy_group(src, dst):
     for name, item in src.groups.items():
         __copy_group(item, dst.create_group(name.split('/').pop()))
 
-    '''
-    for name, item in src.variables.items():
-        __copy_variable(item, dst, name)
-    '''
     procs = []
     for name, item in src.variables.items():
         proc = Process(target=__copy_variable, args=(item, dst, name))
