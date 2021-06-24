@@ -166,6 +166,7 @@ def __copy_group(src, dst):
     for name, item in src.groups.items():
         __copy_group(item, dst.create_group(name.split('/').pop()))
 
+    '''
     for name, item in src.variables.items():
         __copy_variable(item, dst, name)
     '''
@@ -176,7 +177,6 @@ def __copy_group(src, dst):
         procs.append(proc)
     for proc in procs:
         proc.join()
-    '''
 
 
 def __netcdf_attr_to_python(val):
