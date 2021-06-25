@@ -88,14 +88,14 @@ class TestAdapter(unittest.TestCase):
              ├── data
              │   ├── horizontal
              │   │   ├── east (1, 3, 3) int64
-             │   │   └── west (1, 3, 3) float64
+             │   │   └── west (1, 3, 3) uint8
              │   └── vertical
-             │       ├── north (1, 3, 3) float64
-             │       └── south (1, 3, 3) float64
+             │       ├── north (1, 3, 3) uint8
+             │       └── south (1, 3, 3) uint8
              ├── location
-             │   ├── lat (3, 3) float64
-             │   └── lon (3, 3) float64
-             └── time (1,) float64
+             │   ├── lat (3, 3) float32
+             │   └── lon (3, 3) float32
+             └── time (1,) int32
             """).strip()
         self.assertEqual(str(out.tree()), contents)
 
