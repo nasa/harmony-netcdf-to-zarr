@@ -34,7 +34,7 @@ def netcdf_to_zarr(src, dst):
 
         src.set_auto_mask(False)
         src.set_auto_scale(True)
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
             __copy_group(src, zarr.group(dst, overwrite=True), executor)
         zarr.convenience.consolidate_metadata(dst)
 
