@@ -1,6 +1,6 @@
 import collections
 import sys
-from multiprocessing import Process
+import concurrent.futures
 
 import numpy as np
 import zarr
@@ -30,11 +30,13 @@ def netcdf_to_zarr(src, dst):
 
         if isinstance(dst, str):
             dst = zarr.DirectoryStore(dst)
-            managed_resources.append(dst)
+            #managed_resources.append(dst)
+            managed_resources.append(src)
 
         src.set_auto_mask(False)
         src.set_auto_scale(True)
-        __copy_group(src, zarr.group(dst, overwrite=True))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            __copy_group(src, zarr.group(dst, overwrite=True), executor)
         zarr.convenience.consolidate_metadata(dst)
 
     finally:
@@ -100,7 +102,8 @@ def __copy_variable(src, dst_group, name):
         # Treat a 0-dimensional NetCDF variable as a zarr group
         dst = dst_group.create_group(name)
     else:
-        dtype = src.dtype
+        #dtype = src.dtype
+        dtype = np.float64
         dtype = src.scale_factor.dtype if hasattr(src, 'scale_factor') else dtype
         dtype = src.add_offset.dtype if hasattr(src, 'add_offset') else dtype
         dst = dst_group.create_dataset(name,
@@ -147,7 +150,7 @@ def __copy_attrs(src, dst, scaled={}, **kwargs):
     dst.attrs.put(attrs)
 
 
-def __copy_group(src, dst):
+def __copy_group(src, dst, executor):
     """
     Recursively copies the source netCDF4 group into the destination Zarr group, along with
     all sub-groups, variables, and attributes
@@ -159,19 +162,19 @@ def __copy_group(src, dst):
         the NetCDF group to copy from
     dst : zarr.hierarchy.Group
         the existing Zarr group to copy into
+    executor: concurrent.futures.process.ProcessPoolExecutor
+        the multithreading executor to copy variables in parallel
     """
     __copy_attrs(src, dst)
 
     for name, item in src.groups.items():
-        __copy_group(item, dst.create_group(name.split('/').pop()))
+        __copy_group(item, dst.create_group(name.split('/').pop()), executor)
 
-    procs = []
+    futures = []
     for name, item in src.variables.items():
-        proc = Process(target=__copy_variable, args=(item, dst, name))
-        proc.start()
-        procs.append(proc)
-    for proc in procs:
-        proc.join()
+        futures.append(executor.submit(__copy_variable, item, dst, name))
+    for future in futures:
+        future.result()
 
 
 def __netcdf_attr_to_python(val):
