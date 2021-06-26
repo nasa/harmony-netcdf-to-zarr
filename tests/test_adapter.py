@@ -97,6 +97,8 @@ class TestAdapter(unittest.TestCase):
              │   └── lon (3, 3) float32
              └── time (1,) int32
             """).strip()
+        print(str(out.tree()))
+        print(contents)
         self.assertEqual(str(out.tree()), contents)
 
         # -- Metadata Assertions --
