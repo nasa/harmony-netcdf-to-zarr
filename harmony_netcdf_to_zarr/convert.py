@@ -168,12 +168,22 @@ def __copy_group(src, dst, executor):
     for name, item in src.groups.items():
         __copy_group(item, dst.create_group(name.split('/').pop()), executor)
 
+    '''
     futures = []
     for name, item in src.variables.items():
         futures.append(executor.submit(__copy_variable, item, dst, name))
     for future in futures:
         future.result()
+    '''
 
+    from multiprocessing import Process
+    procs = []
+    for name, item in src.variables.items():
+        proc = Process(target=__copy_variable, args=(item, dst, name))
+        proc.start()
+        procs.append(proc)
+    for proc in procs:
+        proc.join()
 
 def __netcdf_attr_to_python(val):
     """
