@@ -1,6 +1,6 @@
 import collections
 import sys
-import concurrent.futures
+from multiprocessing import Process
 
 import numpy as np
 import zarr
@@ -34,8 +34,7 @@ def netcdf_to_zarr(src, dst):
 
         src.set_auto_mask(False)
         src.set_auto_scale(True)
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            __copy_group(src, zarr.group(dst, overwrite=True), executor)
+        __copy_group(src, zarr.group(dst, overwrite=True))
         zarr.convenience.consolidate_metadata(dst)
 
     finally:
@@ -148,7 +147,7 @@ def __copy_attrs(src, dst, scaled={}, **kwargs):
     dst.attrs.put(attrs)
 
 
-def __copy_group(src, dst, executor):
+def __copy_group(src, dst):
     """
     Recursively copies the source netCDF4 group into the destination Zarr group, along with
     all sub-groups, variables, and attributes
@@ -160,23 +159,12 @@ def __copy_group(src, dst, executor):
         the NetCDF group to copy from
     dst : zarr.hierarchy.Group
         the existing Zarr group to copy into
-    executor: concurrent.futures.process.ProcessPoolExecutor
-        the multithreading executor to copy variables in parallel
     """
     __copy_attrs(src, dst)
 
     for name, item in src.groups.items():
-        __copy_group(item, dst.create_group(name.split('/').pop()), executor)
+        __copy_group(item, dst.create_group(name.split('/').pop()))
 
-    '''
-    futures = []
-    for name, item in src.variables.items():
-        futures.append(executor.submit(__copy_variable, item, dst, name))
-    for future in futures:
-        future.result()
-    '''
-
-    from multiprocessing import Process
     procs = []
     for name, item in src.variables.items():
         proc = Process(target=__copy_variable, args=(item, dst, name))
@@ -184,6 +172,7 @@ def __copy_group(src, dst, executor):
         procs.append(proc)
     for proc in procs:
         proc.join()
+
 
 def __netcdf_attr_to_python(val):
     """
