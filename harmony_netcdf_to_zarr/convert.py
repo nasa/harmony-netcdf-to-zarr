@@ -1,5 +1,6 @@
 import collections
 import sys
+import os
 from multiprocessing import Process
 
 import numpy as np
@@ -75,7 +76,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
         return scale_fn(unscaled)
 
 
-def __copy_variable(src, dst_group, name):
+def __copy_variable(src_path, group_path, dst_group, name):
     """
     Copies the variable from the NetCDF src variable into the Zarr group dst_group, giving
     it the provided name
@@ -94,6 +95,7 @@ def __copy_variable(src, dst_group, name):
     zarr.core.Array
         the copied variable
     """
+    src = Dataset(src_path, 'r')[group_path]
     chunks = src.chunking()
     if chunks == 'contiguous' or chunks is None:
         chunks = src.shape
@@ -170,7 +172,8 @@ def __copy_group(src_path, src, dst):
 
     procs = []
     for name, item in src.variables.items():
-        proc = Process(target=__copy_variable, args=(item, dst, name))
+        group_path = os.path.join(item.group().path, name)
+        proc = Process(target=__copy_variable, args=(src_path, group_path, dst, name))
         proc.start()
         procs.append(proc)
     for proc in procs:
