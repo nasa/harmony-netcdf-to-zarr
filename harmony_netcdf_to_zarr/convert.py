@@ -1,6 +1,5 @@
 import collections
 import sys
-import os
 from multiprocessing import Process
 
 import numpy as np
@@ -26,7 +25,6 @@ def netcdf_to_zarr(src, dst):
     try:
         # Allow passing in a path to a store or a file
         if isinstance(src, str):
-            src_path = src
             src = Dataset(src, 'r')
             managed_resources.append(src)
 
@@ -36,7 +34,7 @@ def netcdf_to_zarr(src, dst):
 
         src.set_auto_mask(False)
         src.set_auto_scale(True)
-        __copy_group(src_path, src, zarr.group(dst, overwrite=True))
+        __copy_group(src, zarr.group(dst, overwrite=True))
         zarr.convenience.consolidate_metadata(dst)
 
     finally:
@@ -76,7 +74,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
         return scale_fn(unscaled)
 
 
-def __copy_variable(src_path, group_path, dst_group, name):
+def __copy_variable(src, dst_group, name):
     """
     Copies the variable from the NetCDF src variable into the Zarr group dst_group, giving
     it the provided name
@@ -95,7 +93,6 @@ def __copy_variable(src_path, group_path, dst_group, name):
     zarr.core.Array
         the copied variable
     """
-    src = Dataset(src_path, 'r')[group_path]
     chunks = src.chunking()
     if chunks == 'contiguous' or chunks is None:
         chunks = src.shape
@@ -150,7 +147,7 @@ def __copy_attrs(src, dst, scaled={}, **kwargs):
     dst.attrs.put(attrs)
 
 
-def __copy_group(src_path, src, dst):
+def __copy_group(src, dst):
     """
     Recursively copies the source netCDF4 group into the destination Zarr group, along with
     all sub-groups, variables, and attributes
@@ -158,8 +155,6 @@ def __copy_group(src_path, src, dst):
 
     Parameters
     ----------
-    src_path : str
-        netcdf file path
     src : netCDF4.Group
         the NetCDF group to copy from
     dst : zarr.hierarchy.Group
@@ -168,12 +163,11 @@ def __copy_group(src_path, src, dst):
     __copy_attrs(src, dst)
 
     for name, item in src.groups.items():
-        __copy_group(src_path, item, dst.create_group(name.split('/').pop()))
+        __copy_group(item, dst.create_group(name.split('/').pop()))
 
     procs = []
     for name, item in src.variables.items():
-        group_path = os.path.join(item.group().path, name)
-        proc = Process(target=__copy_variable, args=(src_path, group_path, dst, name))
+        proc = Process(target=__copy_variable, args=(item, dst, name))
         proc.start()
         procs.append(proc)
     for proc in procs:
