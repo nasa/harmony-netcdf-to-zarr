@@ -1,6 +1,7 @@
 import collections
 import sys
 from multiprocessing import Process
+import multiprocessing
 
 import numpy as np
 import zarr
@@ -166,8 +167,9 @@ def __copy_group(src, dst):
         __copy_group(item, dst.create_group(name.split('/').pop()))
 
     procs = []
+    ctx = multiprocessing.get_context('fork')
     for name, item in src.variables.items():
-        proc = Process(target=__copy_variable, args=(item, dst, name))
+        proc = ctx.Process(target=__copy_variable, args=(item, dst, name))
         proc.start()
         procs.append(proc)
     for proc in procs:
