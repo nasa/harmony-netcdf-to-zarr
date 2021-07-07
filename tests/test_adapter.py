@@ -36,6 +36,12 @@ def mock_mp_fork_popen_launch(class_object, process_obj):
     Basically it will only do the work in the parent process
         because moto is holding all the objects in memory
         and therefore they will be gone whenver children processes quit
+    Parameters
+    ----------
+    class_object: object
+        class object for multiprocessing.popen_fork.Popen
+    process_obj: object
+        task object to be processed by multiprocessing.popen_fork.Popen._launch
     """
     code = 1
     parent_r, child_w = os.pipe()
