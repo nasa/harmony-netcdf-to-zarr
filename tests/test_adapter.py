@@ -14,6 +14,8 @@ import boto3
 import s3fs
 import zarr
 from moto import mock_s3
+from multiprocessing.popen_fork import Popen as mp_Popen
+from multiprocessing.popen_fork import util as mp_util
 
 from harmony.message import Message
 from harmony_netcdf_to_zarr.__main__ import main
@@ -23,7 +25,6 @@ import harmony.util
 from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset
 from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
                                        parse_callbacks)
-from multiprocessing.popen_fork import Popen, util
 
 logger = logging.getLogger()
 
@@ -38,7 +39,7 @@ def mock_fork_popen_launch(self, process_obj):
         code = process_obj._bootstrap()
         os.close(child_w)
         os.close(child_r)
-        self.finalizer = util.Finalize(self, util.close_fds,
+        self.finalizer = mp_util.Finalize(self, mp_util.close_fds,
                                        (parent_r, parent_w,))
         self.sentinel = parent_r
 
@@ -52,7 +53,7 @@ class TestAdapter(unittest.TestCase):
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
-    @patch.object(Popen, '_launch', new=mock_fork_popen_launch)
+    @patch.object(mp_Popen, '_launch', new=mock_fork_popen_launch)
     @mock_s3
     def test_end_to_end_file_conversion(self, _callback_post):
         """
@@ -113,8 +114,6 @@ class TestAdapter(unittest.TestCase):
              │   └── lon (3, 3) float32
              └── time (1,) int32
             """).strip()
-        print(str(out.tree()))
-        print(contents)
         self.assertEqual(str(out.tree()), contents)
 
         # -- Metadata Assertions --
