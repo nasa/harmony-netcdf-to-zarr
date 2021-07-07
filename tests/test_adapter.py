@@ -23,9 +23,24 @@ import harmony.util
 from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset
 from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
                                        parse_callbacks)
+from multiprocessing.popen_fork import Popen, util
 
 logger = logging.getLogger()
 
+def mock_fork_popen_launch(self, process_obj):
+    code = 1
+    parent_r, child_w = os.pipe()
+    child_r, parent_w = os.pipe()
+    self.pid = os.fork()
+    if self.pid == 0:
+        os._exit(0)
+    else:
+        code = process_obj._bootstrap()
+        os.close(child_w)
+        os.close(child_r)
+        self.finalizer = util.Finalize(self, util.close_fds,
+                                       (parent_r, parent_w,))
+        self.sentinel = parent_r
 
 class TestAdapter(unittest.TestCase):
     """
@@ -37,6 +52,7 @@ class TestAdapter(unittest.TestCase):
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
+    @patch.object(Popen, '_launch', new=mock_fork_popen_launch)
     @mock_s3
     def test_end_to_end_file_conversion(self, _callback_post):
         """
