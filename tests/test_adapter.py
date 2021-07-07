@@ -28,20 +28,27 @@ from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
 
 logger = logging.getLogger()
 
-def mock_fork_popen_launch(self, process_obj):
+def mock_mp_fork_popen_launch(class_object, process_obj):
+    """
+    This method serves as a mocker
+        for multiprocessing.popen_fork.Popen._launch method
+    Basically it will only process the request in the parent process
+        because moto is holding all the objects in memory
+        and therefore they will be gone whenver children process quits
+    """
     code = 1
     parent_r, child_w = os.pipe()
     child_r, parent_w = os.pipe()
-    self.pid = os.fork()
-    if self.pid == 0:
+    class_object.pid = os.fork()
+    if class_object.pid == 0:
         os._exit(0)
     else:
         code = process_obj._bootstrap()
         os.close(child_w)
         os.close(child_r)
-        self.finalizer = mp_util.Finalize(self, mp_util.close_fds,
+        class_object.finalizer = mp_util.Finalize(class_object, mp_util.close_fds,
                                        (parent_r, parent_w,))
-        self.sentinel = parent_r
+        class_object.sentinel = parent_r
 
 class TestAdapter(unittest.TestCase):
     """
@@ -53,7 +60,7 @@ class TestAdapter(unittest.TestCase):
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
-    @patch.object(mp_Popen, '_launch', new=mock_fork_popen_launch)
+    @patch.object(mp_Popen, '_launch', new = mock_mp_fork_popen_launch)
     @mock_s3
     def test_end_to_end_file_conversion(self, _callback_post):
         """
