@@ -28,13 +28,14 @@ from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
 
 logger = logging.getLogger()
 
+
 def mock_mp_fork_popen_launch(class_object, process_obj):
     """
     This method serves as a mocker
         for multiprocessing.popen_fork.Popen._launch method
-    Basically it will only process the request in the parent process
+    Basically it will only do the work in the parent process
         because moto is holding all the objects in memory
-        and therefore they will be gone whenver children process quits
+        and therefore they will be gone whenver children processes quit
     """
     code = 1
     parent_r, child_w = os.pipe()
@@ -49,6 +50,7 @@ def mock_mp_fork_popen_launch(class_object, process_obj):
         class_object.finalizer = mp_util.Finalize(class_object, mp_util.close_fds,
                                        (parent_r, parent_w,))
         class_object.sentinel = parent_r
+
 
 class TestAdapter(unittest.TestCase):
     """
