@@ -1,6 +1,7 @@
 import collections
 import sys
 import multiprocessing
+from multiprocessing import Semaphore
 
 import numpy as np
 import zarr
@@ -74,7 +75,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
         return scale_fn(unscaled)
 
 
-def __copy_variable(src, dst_group, name):
+def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
     """
     Copies the variable from the NetCDF src variable into the Zarr group dst_group, giving
     it the provided name
@@ -87,12 +88,18 @@ def __copy_variable(src, dst_group, name):
         the group into which to copy the variable
     name : string
         the name of the variable in the destination group
+    sema: multiprocessing.synchronize.Semaphore
+        Semaphore used to limit concurrent processes
+        NOTE: the default value 20 is empirical
 
     Returns
     -------
     zarr.core.Array
         the copied variable
     """
+    # acquire Semaphore
+    sema.acquire()
+
     chunks = src.chunking()
     if chunks == 'contiguous' or chunks is None:
         chunks = src.shape
@@ -120,6 +127,9 @@ def __copy_variable(src, dst_group, name):
 
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
     __copy_attrs(src, dst, scaled, _ARRAY_DIMENSIONS=list(src.dimensions))
+
+    # release Semaphore
+    sema.release()
 
     return dst
 
@@ -151,9 +161,11 @@ def __copy_group(src, dst):
     """
     Recursively copies the source netCDF4 group into the destination Zarr group, along with
     all sub-groups, variables, and attributes
-    NOTE: the variables will be copied in parallel processes via multiprocessing
-          'fork' is used as the start-method because OSX/Windows is using 'spawn' by default
-          which will introduce overhead and difficulties pickling data objects (and to the test)
+    NOTE: the variables will be copied in parallel processes via multiprocessing;
+          'fork' is used as the start-method because OSX/Windows is using 'spawn' by default,
+          which will introduce overhead and difficulties pickling data objects (and to the test);
+          Semaphore is used to limit the number of concurrent processes,
+          which is set to double the number of cpu-s found on the host
 
     Parameters
     ----------
@@ -169,8 +181,9 @@ def __copy_group(src, dst):
 
     procs = []
     fork_ctx = multiprocessing.get_context('fork')
+    sema = Semaphore(multiprocessing.cpu_count()*2)
     for name, item in src.variables.items():
-        proc = fork_ctx.Process(target=__copy_variable, args=(item, dst, name))
+        proc = fork_ctx.Process(target=__copy_variable, args=(item, dst, name, sema))
         proc.start()
         procs.append(proc)
     for proc in procs:
