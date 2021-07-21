@@ -1,12 +1,28 @@
 import collections
+import os
 import sys
 import multiprocessing
 from multiprocessing import Semaphore
 
+import s3fs
 import numpy as np
 import zarr
 from netCDF4 import Dataset
 
+region = os.environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
+
+def make_localstack_s3fs():
+    host = os.environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
+    return s3fs.S3FileSystem(
+        use_ssl=False,
+        key='ACCESS_KEY',
+        secret='SECRET_KEY',
+        client_kwargs=dict(
+            region_name=region,
+            endpoint_url='http://%s:4572' % (host)))
+
+def make_s3fs():
+    return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
 
 def netcdf_to_zarr(src, dst):
     """
@@ -100,6 +116,16 @@ def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
     # acquire Semaphore
     sema.acquire()
 
+    # connect to s3
+    if os.environ.get('USE_LOCALSTACK') == 'true':
+        s3 = make_localstack_s3fs()
+    else:
+        s3 = make_s3fs()
+    group_name = os.path.join(dst_group.store.root, dst_group.path)
+    dst = s3.get_mapper(root=group_name, check=False, create=True)
+    dst_group = zarr.group(dst)
+
+    # create zarr group/dataset
     chunks = src.chunking()
     if chunks == 'contiguous' or chunks is None:
         chunks = src.shape
