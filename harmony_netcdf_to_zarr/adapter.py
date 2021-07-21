@@ -15,24 +15,7 @@ from pystac import Asset
 
 import harmony
 from harmony.util import generate_output_filename, download, HarmonyException
-from .convert import netcdf_to_zarr
-
-region = environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
-
-
-def make_localstack_s3fs():
-    host = environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
-    return s3fs.S3FileSystem(
-        use_ssl=False,
-        key='ACCESS_KEY',
-        secret='SECRET_KEY',
-        client_kwargs=dict(
-            region_name=region,
-            endpoint_url='http://%s:4572' % (host)))
-
-
-def make_s3fs():
-    return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
+from .convert import netcdf_to_zarr, make_localstack_s3fs, make_s3fs
 
 
 class ZarrException(HarmonyException):
