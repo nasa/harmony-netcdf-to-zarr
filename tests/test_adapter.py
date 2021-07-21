@@ -14,6 +14,8 @@ import boto3
 import s3fs
 import zarr
 from moto import mock_s3
+from multiprocessing.popen_fork import Popen as mp_Popen
+from multiprocessing.popen_fork import util as mp_util
 
 from harmony.message import Message
 from harmony_netcdf_to_zarr.__main__ import main
@@ -27,6 +29,35 @@ from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
 logger = logging.getLogger()
 
 
+def mock_mp_fork_popen_launch(class_object, process_obj):
+    """
+    This method serves as a mocker
+        for multiprocessing.popen_fork.Popen._launch method
+    Basically it will only do the work in the parent process
+        because moto is holding all the objects in memory
+        and therefore they will be gone whenever children processes quit
+    Parameters
+    ----------
+    class_object: object
+        class object for multiprocessing.popen_fork.Popen
+    process_obj: object
+        task object to be processed by multiprocessing.popen_fork.Popen._launch
+    """
+    code = 1
+    parent_r, child_w = os.pipe()
+    child_r, parent_w = os.pipe()
+    class_object.pid = os.fork()
+    if class_object.pid == 0:
+        os._exit(0)
+    else:
+        code = process_obj._bootstrap()
+        os.close(child_w)
+        os.close(child_r)
+        class_object.finalizer = mp_util.Finalize(class_object, mp_util.close_fds,
+                                       (parent_r, parent_w,))
+        class_object.sentinel = parent_r
+
+
 class TestAdapter(unittest.TestCase):
     """
     Tests the Harmony adapter
@@ -37,6 +68,7 @@ class TestAdapter(unittest.TestCase):
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
+    @patch.object(mp_Popen, '_launch', new = mock_mp_fork_popen_launch)
     @mock_s3
     def test_end_to_end_file_conversion(self, _callback_post):
         """
@@ -88,14 +120,14 @@ class TestAdapter(unittest.TestCase):
              ├── data
              │   ├── horizontal
              │   │   ├── east (1, 3, 3) int64
-             │   │   └── west (1, 3, 3) float64
+             │   │   └── west (1, 3, 3) uint8
              │   └── vertical
-             │       ├── north (1, 3, 3) float64
-             │       └── south (1, 3, 3) float64
+             │       ├── north (1, 3, 3) uint8
+             │       └── south (1, 3, 3) uint8
              ├── location
-             │   ├── lat (3, 3) float64
-             │   └── lon (3, 3) float64
-             └── time (1,) float64
+             │   ├── lat (3, 3) float32
+             │   └── lon (3, 3) float32
+             └── time (1,) int32
             """).strip()
         self.assertEqual(str(out.tree()), contents)
 
