@@ -11,6 +11,7 @@ from netCDF4 import Dataset
 
 region = os.environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
 
+
 def make_localstack_s3fs():
     host = os.environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
     return s3fs.S3FileSystem(
@@ -21,8 +22,10 @@ def make_localstack_s3fs():
             region_name=region,
             endpoint_url='http://%s:4572' % (host)))
 
+
 def make_s3fs():
     return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
+
 
 def netcdf_to_zarr(src, dst):
     """
@@ -77,7 +80,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
         the number used to multiply unscaled data
     add_offset : number
         the number added to unscaled data after multiplied by scale_factor
-    
+
     Returns
     -------
     list | number
