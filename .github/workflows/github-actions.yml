@@ -32,7 +32,7 @@ jobs:
         
     - name: Run lint
       run: |
-        flake8 harmony_netcdf_to_zarr
+        flake8 --ignore=E731 harmony_netcdf_to_zarr
 
     - name: Run test
       run: |
