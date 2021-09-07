@@ -210,7 +210,7 @@ def __copy_group(src, dst):
 
     procs = []
     fork_ctx = multiprocessing.get_context('fork')
-    sema = Semaphore(multiprocessing.cpu_count()*2)
+    sema = Semaphore(multiprocessing.cpu_count() * 2)
     for name, item in src.variables.items():
         proc = fork_ctx.Process(target=__copy_variable, args=(item, dst, name, sema))
         proc.start()
