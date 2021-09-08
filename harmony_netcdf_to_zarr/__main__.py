@@ -29,7 +29,7 @@ def main(argv, **kwargs):
     # TODO - Update this when working HARMONY-639
     # DO NOT REMOVE THE FOLLOWING LINE - NEEDED AS WORKAROUND TO ARGO CHAINING ISSUE
     print('MAIN STARTED')
-    
+
     config = None
     # Optional: harmony.util.Config is injectable for tests
     if 'config' in kwargs:

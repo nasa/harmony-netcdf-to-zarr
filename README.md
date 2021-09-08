@@ -39,6 +39,7 @@ If you would like to do local development outside of Docker, install Python (3.7
 
 Install project dependencies:
 
+    $ python -m pip install --upgrade pip
     $ make install
 
 ### Development with Docker

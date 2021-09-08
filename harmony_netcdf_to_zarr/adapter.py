@@ -10,7 +10,6 @@ from os import environ
 import shutil
 from tempfile import mkdtemp
 
-import s3fs
 from pystac import Asset
 
 import harmony
