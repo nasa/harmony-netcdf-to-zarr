@@ -96,8 +96,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
 
 def regenerate_chunks(chunks):
     """
-    Scales an unscaled NetCDF attribute
-
+    Regenerate new chunks based on given zarr chunks
 
     Parameters
     ----------
@@ -109,7 +108,12 @@ def regenerate_chunks(chunks):
     list
         the regenerated new zarr chunks
     """
-    new_chunks = chunks
+    # regenerate new chunks
+    # NOTE currently hard-coded each dimension to be 9000 (or no change if <9000)
+    new_chunks = map(lambda x: min(x, 9000), chunks)
+    new_chunks = type(chunks)(list(new_chunks))
+
+    # return new chunks
     return new_chunks
 
 
