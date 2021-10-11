@@ -100,8 +100,8 @@ def regenerate_chunks(shape, chunks):
 
     Parameters
     ----------
-    chunks : list/tuple
-        the original zarr shape
+    shape : list/tuple
+        the zarr shape
     chunks : list/tuple
         the original zarr chunks
 
