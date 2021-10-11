@@ -22,7 +22,7 @@ from harmony_netcdf_to_zarr.__main__ import main
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
 import harmony.util
 
-from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset
+from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset, create_large_dataset
 from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
                                        parse_callbacks)
 
@@ -169,6 +169,51 @@ class TestAdapter(unittest.TestCase):
 
         # 1D Root-Level Float Array sharing its name with a dimension
         self.assertEqual(out['time'][0],  166536)
+
+
+    @patch.dict(os.environ, MOCK_ENV)
+    @patch.object(NetCDFToZarrAdapter, '_callback_post')
+    @patch.object(mp_Popen, '_launch', new = mock_mp_fork_popen_launch)
+    @mock_s3
+    def test_end_to_end_large_file_conversion(self, _callback_post):
+        """
+        Full end-to-end test of the adapter from call to `main` to Harmony callbacks, including
+        ensuring the contents of the file are correct.  Mocks S3 interactions using @mock_s3.
+        """
+        conn = boto3.resource('s3')
+        conn.create_bucket(
+            Bucket='example-bucket',
+            CreateBucketConfiguration={'LocationConstraint': os.environ['AWS_DEFAULT_REGION']})
+
+        netcdf_file = create_large_dataset()
+        netcdf_file2 = create_large_dataset()
+        try:
+            message = mock_message_for(netcdf_file, netcdf_file2)
+            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message],
+                 config=self.config)
+        finally:
+            os.remove(netcdf_file)
+            os.remove(netcdf_file2)
+
+        callbacks = parse_callbacks(_callback_post)
+
+        # Open the Zarr file that the adapter called back with
+        zarr_location = callbacks[0]['item[href]']
+        store = s3fs.S3FileSystem().get_mapper(root=zarr_location, check=False)
+        out = zarr.open_consolidated(store)
+
+        # -- Hierarchical Structure Assertions --
+        contents = textwrap.dedent("""
+            /
+             ├── data
+             │   └── var (10000,) int32
+             └── dummy_dim (10000,) int32
+            """).strip()
+        self.assertEqual(str(out.tree()), contents)
+
+        # -- Data Assertions --
+        self.assertEqual(out['data/var'].chunks, (9000,) )
+
 
     @patch.object(argparse.ArgumentParser, 'error', return_value=None)
     def test_does_not_accept_non_harmony_clis(self, argparse_error):

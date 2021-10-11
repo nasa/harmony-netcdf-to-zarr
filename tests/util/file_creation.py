@@ -91,3 +91,27 @@ def create_full_dataset(filename=None):
         s_var[0, :, :] = np.rot90(n_var[0], 2, axes=(0, 1))
         e_var[0, :, :] = np.rot90(n_var[0], 3, axes=(0, 1))
     return filename
+
+
+def create_large_dataset(filename=None):
+    filename = filename or tempfile.mkstemp()[1]
+    with Dataset(filename, 'w') as ds:
+        num_points = 10000
+
+        ds.createDimension('dummy_dim', num_points)
+
+        dummy_dim = ds.createVariable('dummy_dim', 'i4', ('dummy_dim', ), zlib=True)
+
+        data_grp = ds.createGroup('data')
+        data_grp.description = 'Group to hold the data'
+
+        data_var = data_grp.createVariable('var', 'i4', ('dummy_dim', ), zlib=True, fill_value=127, chunksizes=(300,))
+        data_var.coordinates = 'lon lat'
+
+        # Fill dimension values
+        dummy_dim[:] = np.arange(num_points)
+
+        # Fill data values
+        data_var[:] = np.arange(num_points)
+
+    return filename
