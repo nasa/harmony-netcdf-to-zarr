@@ -94,13 +94,15 @@ def scale_attribute(src, attr, scale_factor, add_offset):
         return scale_fn(unscaled)
 
 
-def regenerate_chunks(chunks):
+def regenerate_chunks(shape, chunks):
     """
     Regenerate new chunks based on given zarr chunks
 
     Parameters
     ----------
-    chunks : list
+    chunks : list/tuple
+        the original zarr shape
+    chunks : list/tuple
         the original zarr chunks
 
     Returns
@@ -110,7 +112,7 @@ def regenerate_chunks(chunks):
     """
     # regenerate new chunks
     # NOTE currently hard-coded each dimension to be 9000 (or no change if <9000)
-    new_chunks = map(lambda x: min(x, 9000), chunks)
+    new_chunks = map(lambda x: min(x[0], max(x[1], 9000)), zip(shape, chunks))
     new_chunks = type(chunks)(list(new_chunks))
 
     # return new chunks
@@ -162,7 +164,7 @@ def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
         dtype = src.dtype
         dtype = src.scale_factor.dtype if hasattr(src, 'scale_factor') else dtype
         dtype = src.add_offset.dtype if hasattr(src, 'add_offset') else dtype
-        new_chunks = regenerate_chunks(chunks)
+        new_chunks = regenerate_chunks(src.shape, chunks)
         dst = dst_group.create_dataset(name,
                                        data=src,
                                        shape=src.shape,
