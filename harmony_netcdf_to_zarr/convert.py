@@ -111,8 +111,9 @@ def regenerate_chunks(shape, chunks):
         the regenerated new zarr chunks
     """
     # regenerate new chunks
-    # NOTE currently hard-coded each dimension to be 9000 (or no change if <9000)
-    new_chunks = map(lambda x: min(x[0], max(x[1], 9000)), zip(shape, chunks))
+    # NOTE currently hard-coded each chunk dimension to be 3000
+    #   (or no change if original chunk > 3000)
+    new_chunks = map(lambda x: min(x[0], max(x[1], 3000)), zip(shape, chunks))
     new_chunks = type(chunks)(list(new_chunks))
 
     # return new chunks
