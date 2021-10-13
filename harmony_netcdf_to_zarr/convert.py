@@ -113,7 +113,10 @@ def regenerate_chunks(shape, chunks):
     # regenerate new chunks
     # NOTE currently hard-coded each chunk dimension to be 3000
     #   (or no change if original chunk > 3000)
-    new_chunks = map(lambda x: min(x[0], max(x[1], 3000)), zip(shape, chunks))
+    new_chunks = map(
+        lambda x: min(x[0], int(3000 / x[1]) * x[1] if x[1] < 3000 else 3000),
+        zip(shape, chunks),
+    )
     new_chunks = type(chunks)(list(new_chunks))
 
     # return new chunks
