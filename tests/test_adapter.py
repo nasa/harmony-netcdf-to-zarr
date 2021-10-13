@@ -212,7 +212,7 @@ class TestAdapter(unittest.TestCase):
         self.assertEqual(str(out.tree()), contents)
 
         # -- Data Assertions --
-        self.assertEqual(out['data/var'].chunks, (3000,) )
+        self.assertEqual(out['data/var'].chunks, (2920,) )
 
 
     @patch.object(argparse.ArgumentParser, 'error', return_value=None)

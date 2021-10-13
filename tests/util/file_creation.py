@@ -105,8 +105,7 @@ def create_large_dataset(filename=None):
         data_grp = ds.createGroup('data')
         data_grp.description = 'Group to hold the data'
 
-        data_var = data_grp.createVariable('var', 'i4', ('dummy_dim', ), zlib=True, fill_value=127, chunksizes=(300,))
-        data_var.coordinates = 'lon lat'
+        data_var = data_grp.createVariable('var', 'i4', ('dummy_dim', ), zlib=True, fill_value=127, chunksizes=(365,))
 
         # Fill dimension values
         dummy_dim[:] = np.arange(num_points)
