@@ -177,8 +177,8 @@ class TestAdapter(unittest.TestCase):
     @mock_s3
     def test_end_to_end_large_file_conversion(self, _callback_post):
         """
-        Full end-to-end test of the adapter from call to `main` to Harmony callbacks, including
-        ensuring the contents of the file are correct.  Mocks S3 interactions using @mock_s3.
+        Full end-to-end test of the adapter to make sure rechunk is working.
+        Mocks S3 interactions using @mock_s3.
         """
         conn = boto3.resource('s3')
         conn.create_bucket(
