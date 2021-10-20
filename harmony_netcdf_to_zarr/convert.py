@@ -3,6 +3,7 @@ import os
 import sys
 import multiprocessing
 from multiprocessing import Semaphore
+from typing import Union
 
 import s3fs
 import numpy as np
@@ -123,8 +124,29 @@ def regenerate_chunks(shape, chunks):
     return new_chunks
 
 
-def suggest_chunksize(input_shape, input_datatype,
-                      expected_compression_ratio, target_size_after_compression):
+def suggest_chunksize(shape, datatype,
+                      expected_compression_ratio=0.75,
+                      target_size_after_compression: Union[int, str] = '10 Mi'):
+    """
+    Suggest chunk size by trying to balance between all dimensions
+
+    Parameters
+    ----------
+    shape : list/tuple
+        the zarr shape
+    datatype: string
+        the zarr data type
+    target_size_after_compression: string
+        expected chunk size after compression
+        If it's a string, assuming it follows NIST standard for binary prefix
+        (https://physics.nist.gov/cuu/Units/binary.html)
+        space is optional between number and unit
+
+    Returns
+    -------
+    list/tuple
+        the regenerated new zarr chunks
+    """
     # suggest chunk size by trying to balance between all dimensions
     suggested_chunksize = None
 
