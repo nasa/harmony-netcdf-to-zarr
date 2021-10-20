@@ -124,8 +124,9 @@ def regenerate_chunks(shape, chunks):
     return new_chunks
 
 
-def suggest_chunksize(shape, datatype,
-                      expected_compression_ratio=0.75,
+def suggest_chunksize(shape: Union[tuple, list],
+                      datatype: str,
+                      expected_compression_ratio: float = 0.75,
                       target_size_after_compression: Union[int, str] = '10 Mi'):
     """
     Suggest chunk size by trying to balance between all dimensions
