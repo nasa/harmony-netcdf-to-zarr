@@ -123,6 +123,15 @@ def regenerate_chunks(shape, chunks):
     return new_chunks
 
 
+def suggest_chunksize(input_shape, input_datatype,
+                      expected_compression_ratio, target_size_after_compression):
+    # suggest chunk size by trying to balance between all dimensions
+    suggested_chunksize = None
+
+    # return new chunks
+    return suggested_chunksize
+
+
 def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
     """
     Copies the variable from the NetCDF src variable into the Zarr group dst_group, giving
