@@ -126,8 +126,8 @@ def regenerate_chunks(shape, chunks):
 
 def suggest_chunksize(shape: Union[tuple, list],
                       datatype: str,
-                      expected_compression_ratio: float = 7.2,
-                      target_size_after_compression: Union[int, str] = '10 Mi'):
+                      compression_ratio: float = 7.2,
+                      compressed_chunksize: Union[int, str] = '10 Mi'):
     """
     Suggest chunk size by trying to balance between all dimensions
 
@@ -137,12 +137,12 @@ def suggest_chunksize(shape: Union[tuple, list],
         the zarr shape
     datatype: str
         the zarr data type
-    expected_compression_ratio: str
+    compression_ratio: str
         expected compression ratio for each chunk
         default to 7.2 which is the compression ratio
         from a chunk size of (3000, 3000) with double precision
         compressed to 10 Mi
-    target_size_after_compression: string
+    compressed_chunksize: string
         expected chunk size after compression
         If it's a string, assuming it follows NIST standard for binary prefix
         (https://physics.nist.gov/cuu/Units/binary.html)
