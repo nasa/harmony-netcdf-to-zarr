@@ -138,6 +138,7 @@ def suggest_chunksize(shape: Union[tuple, list],
         the zarr shape
     datatype: str
         the zarr data type
+        it must be recognized by numpy
     compression_ratio: str
         expected compression ratio for each chunk
         default to 7.2 which is the compression ratio
@@ -163,11 +164,13 @@ def suggest_chunksize(shape: Union[tuple, list],
         conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
         compressed_chunksize = int(value * conversion_map[unit])
 
-    # get chunksize in byte before compression
+    # get product of chunksize along different dimensions before compression
     if compression_ratio < 1.:
         raise ValueError("Compression ratio < 1 found when estimating chunk size.")
-    chunksize_bytes = compressed_chunksize * compression_ratio
-    print(chunksize_bytes)
+    chunksize_product = int(
+        compressed_chunksize * compression_ratio / np.dtype(datatype).itemsize
+    )
+    print(chunksize_product)
 
     # suggest chunk size by trying to balance between all dimensions
     suggested_chunksize = None
