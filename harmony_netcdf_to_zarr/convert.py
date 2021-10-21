@@ -4,6 +4,7 @@ import sys
 import multiprocessing
 from multiprocessing import Semaphore
 from typing import Union
+import re
 
 import s3fs
 import numpy as np
@@ -144,15 +145,24 @@ def suggest_chunksize(shape: Union[tuple, list],
         compressed to 10 Mi
     compressed_chunksize: string
         expected chunk size after compression
-        If it's a string, assuming it follows NIST standard for binary prefix
+        If it's a string, assuming it follows NIST standard for binary prefix,
         (https://physics.nist.gov/cuu/Units/binary.html)
-        space is optional between number and unit
+        except that only Ki, Mi, and Gi are allowed.
+        Space is optional between number and unit.
 
     Returns
     -------
     list/tuple
         the regenerated new zarr chunks
     """
+    # convert compressed_chunksize to integer if it's a str
+    if type(compressed_chunksize) == str:
+        (value, unit) = re.findall(
+            r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize
+        )[0]
+        conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
+        compressed_chunksize = value * conversion_map[unit]
+
     # suggest chunk size by trying to balance between all dimensions
     suggested_chunksize = None
 
