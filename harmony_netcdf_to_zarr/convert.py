@@ -145,8 +145,8 @@ def suggest_chunksize(shape: Union[tuple, list],
         compressed to 10 Mi
     compressed_chunksize: string
         expected chunk size after compression
-        If it's a string, assuming it follows NIST standard for binary prefix,
-        (https://physics.nist.gov/cuu/Units/binary.html)
+        If it's a string, assuming it follows NIST standard for binary prefix
+            (https://physics.nist.gov/cuu/Units/binary.html)
         except that only Ki, Mi, and Gi are allowed.
         Space is optional between number and unit.
 
@@ -161,7 +161,7 @@ def suggest_chunksize(shape: Union[tuple, list],
             r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize
         )[0]
         conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
-        compressed_chunksize = value * conversion_map[unit]
+        compressed_chunksize = int(value * conversion_map[unit])
 
     # suggest chunk size by trying to balance between all dimensions
     suggested_chunksize = None
