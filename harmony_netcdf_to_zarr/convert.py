@@ -128,7 +128,7 @@ def regenerate_chunks(shape, chunks):
 def suggest_chunksize(shape: Union[tuple, list],
                       datatype: str,
                       compression_ratio: float = 7.2,
-                      compressed_chunksize: Union[int, str] = '10 Mi'):
+                      compressed_chunksize_byte: Union[int, str] = '10 Mi'):
     """
     Suggest chunk size by trying to balance between all dimensions
 
@@ -144,7 +144,7 @@ def suggest_chunksize(shape: Union[tuple, list],
         default to 7.2 which is the compression ratio
         from a chunk size of (3000, 3000) with double precision
         compressed to 10 Mi
-    compressed_chunksize: string
+    compressed_chunksize_byte: int/string
         expected chunk size after compression
         If it's a string, assuming it follows NIST standard for binary prefix
             (https://physics.nist.gov/cuu/Units/binary.html)
@@ -156,19 +156,19 @@ def suggest_chunksize(shape: Union[tuple, list],
     list/tuple
         the regenerated new zarr chunks
     """
-    # convert compressed_chunksize to integer if it's a str
-    if type(compressed_chunksize) == str:
+    # convert compressed_chunksize_byte to integer if it's a str
+    if type(compressed_chunksize_byte) == str:
         (value, unit) = re.findall(
-            r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize
+            r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize_byte
         )[0]
         conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
-        compressed_chunksize = int(value * conversion_map[unit])
+        compressed_chunksize_byte = int(value * conversion_map[unit])
 
     # get product of chunksize along different dimensions before compression
     if compression_ratio < 1.:
         raise ValueError("Compression ratio < 1 found when estimating chunk size.")
     chunksize_product = int(
-        compressed_chunksize * compression_ratio / np.dtype(datatype).itemsize
+        compressed_chunksize_byte * compression_ratio / np.dtype(datatype).itemsize
     )
     print(chunksize_product)
 
