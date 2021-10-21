@@ -163,6 +163,12 @@ def suggest_chunksize(shape: Union[tuple, list],
         conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
         compressed_chunksize = int(value * conversion_map[unit])
 
+    # get chunksize in byte before compression
+    if compression_ratio < 1.:
+        raise ValueError("Compression ratio < 1 found when estimating chunk size.")
+    chunksize_bytes = compressed_chunksize * compression_ratio
+    print(chunksize_bytes)
+
     # suggest chunk size by trying to balance between all dimensions
     suggested_chunksize = None
 
