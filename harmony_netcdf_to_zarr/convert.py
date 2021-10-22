@@ -167,13 +167,25 @@ def suggest_chunksize(shape: Union[tuple, list],
     # get product of chunksize along different dimensions before compression
     if compression_ratio < 1.:
         raise ValueError("Compression ratio < 1 found when estimating chunk size.")
-    chunksize_product = int(
+    chunksize_unrolled = int(
         compressed_chunksize_byte * compression_ratio / np.dtype(datatype).itemsize
     )
-    print(chunksize_product)
+    print(chunksize_unrolled)
 
     # suggest chunk size by trying to balance between all dimensions
-    suggested_chunksize = None
+    suggested_chunksize = np.full(shape.shape, 0)
+    shape_array = np.array(shape)
+    dim_to_process = np.full(len(shape), True)
+    while not (~dim_to_process).all():
+        chunksize_remaining = chunksize_unrolled // suggested_chunksize[~dim_to_process].prod()
+        chunksize_oneside = int(pow(chunksize_remaining, 1 / dim_to_process.sum()))
+        if (shape_array[dim_to_process] >= chunksize_oneside).all():
+            suggested_chunksize[dim_to_process] = chunksize_oneside
+            shape_array[dim_to_process] = False
+        else:
+            dim_to_fill = dim_to_process & (shape_array < chunksize_oneside)
+            suggested_chunksize[dim_to_fill] = shape_array[dim_to_fill]
+            dim_to_process[dim_to_fill] = False
 
     # return new chunks
     return suggested_chunksize
