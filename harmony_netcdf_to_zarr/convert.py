@@ -170,7 +170,6 @@ def suggest_chunksize(shape: Union[tuple, list],
     chunksize_unrolled = int(
         compressed_chunksize_byte * compression_ratio / np.dtype(datatype).itemsize
     )
-    print(chunksize_unrolled)
 
     # suggest chunk size by trying to balance between all dimensions
     suggested_chunksize = np.full(len(shape), 0)
@@ -188,6 +187,7 @@ def suggest_chunksize(shape: Union[tuple, list],
             dim_to_process[dim_to_fill] = False
 
     # return new chunks
+    suggested_chunksize = type(shape)(suggested_chunksize)
     return suggested_chunksize
 
 
