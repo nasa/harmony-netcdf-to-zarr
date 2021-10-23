@@ -173,7 +173,7 @@ def suggest_chunksize(shape: Union[tuple, list],
     print(chunksize_unrolled)
 
     # suggest chunk size by trying to balance between all dimensions
-    suggested_chunksize = np.full(shape.shape, 0)
+    suggested_chunksize = np.full(len(shape), 0)
     shape_array = np.array(shape)
     dim_to_process = np.full(len(shape), True)
     while not (~dim_to_process).all():
