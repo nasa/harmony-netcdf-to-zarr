@@ -15,13 +15,28 @@ class TestConvert(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_suggest_chunksize(self):
+    def test_suggest_chunksize_small(self):
         """
-        Test for suggest_chunksize method
+        Test of suggest_chunksize method for a small input shape
         """
-        #pytest.set_trace()
+        chunksize_expected = (100, 100, 100)
+        chunksize_result = convert.suggest_chunksize(shape=(100, 100,100), datatype='f8')
+        assert chunksize_expected == chunksize_result
+
+    def test_suggest_chunksize_medium(self):
+        """
+        Test of suggest_chunksize method for a medium input shape
+        """
+        chunksize_expected = (100, 307, 307)
+        chunksize_result = convert.suggest_chunksize(shape=(100, 1000,1000), datatype='f8')
+        assert chunksize_expected == chunksize_result
+
+    def test_suggest_chunksize_large(self):
+        """
+        Test of suggest_chunksize method for a large input shape
+        """
         chunksize_expected = (211, 211, 211)
-        chunksize_result = convert.suggest_chunksize(shape=(10000, 1000,1000), datatype='f8')
+        chunksize_result = convert.suggest_chunksize(shape=(1000, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
     def tearDown(self):
