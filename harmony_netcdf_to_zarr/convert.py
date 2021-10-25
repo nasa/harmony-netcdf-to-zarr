@@ -180,7 +180,7 @@ def suggest_chunksize(shape: Union[tuple, list],
         chunksize_oneside = int(pow(chunksize_remaining, 1 / dim_to_process.sum()))
         if (shape_array[dim_to_process] >= chunksize_oneside).all():
             suggested_chunksize[dim_to_process] = chunksize_oneside
-            shape_array[dim_to_process] = False
+            dim_to_process[:] = False
         else:
             dim_to_fill = dim_to_process & (shape_array < chunksize_oneside)
             suggested_chunksize[dim_to_fill] = shape_array[dim_to_fill]
