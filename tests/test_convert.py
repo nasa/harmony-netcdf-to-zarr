@@ -20,8 +20,8 @@ class TestConvert(unittest.TestCase):
         Test for suggest_chunksize method
         """
         #pytest.set_trace()
-        chunksize_expected = (1000,1000)
-        chunksize_result = convert.suggest_chunksize(shape=(1000,1000), datatype='f8')
+        chunksize_expected = (211, 211, 211)
+        chunksize_result = convert.suggest_chunksize(shape=(10000, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
     def tearDown(self):
