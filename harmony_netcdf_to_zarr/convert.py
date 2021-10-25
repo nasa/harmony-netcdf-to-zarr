@@ -187,7 +187,7 @@ def suggest_chunksize(shape: Union[tuple, list],
             dim_to_process[dim_to_fill] = False
 
     # return new chunks
-    suggested_chunksize = type(shape)(suggested_chunksize)
+    suggested_chunksize = type(shape)(suggested_chunksize.tolist())
     return suggested_chunksize
 
 
@@ -236,7 +236,7 @@ def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
         dtype = src.dtype
         dtype = src.scale_factor.dtype if hasattr(src, 'scale_factor') else dtype
         dtype = src.add_offset.dtype if hasattr(src, 'add_offset') else dtype
-        new_chunks = regenerate_chunks(src.shape, chunks)
+        new_chunks = suggest_chunksize(src.shape, dtype)
         dst = dst_group.create_dataset(name,
                                        data=src,
                                        shape=src.shape,
