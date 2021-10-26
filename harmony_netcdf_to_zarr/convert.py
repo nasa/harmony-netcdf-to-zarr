@@ -99,7 +99,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
 def regenerate_chunks(shape: Union[tuple, list],
                       datatype: str,
                       compression_ratio: float = 7.2,
-                      compressed_chunksize_byte: Union[int, str] = '10 Mi'):
+                      compressed_chunksize_byte: Union[int, str] = '100 Mi'):
     """
     Suggest chunk size by trying to balance between all dimensions
 
