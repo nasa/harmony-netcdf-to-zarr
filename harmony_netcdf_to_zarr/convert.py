@@ -101,7 +101,10 @@ def regenerate_chunks(shape: Union[tuple, list],
                       compression_ratio: float = 7.2,
                       compressed_chunksize_byte: Union[int, str] = '100 Mi'):
     """
-    Suggest chunk size by trying to balance between all dimensions
+    Compute the chunksize for a given shape and datattype
+        based on the compression requirement
+    We will try to make it equal along different dimensions,
+        without exceeding the given shape boundary
 
     Parameters
     ----------
@@ -142,7 +145,8 @@ def regenerate_chunks(shape: Union[tuple, list],
         compressed_chunksize_byte * compression_ratio / np.dtype(datatype).itemsize
     )
 
-    # suggest chunk size by trying to balance between all dimensions
+    # compute the chunksize by trying to make it equal along different dimensions,
+    #    without exceeding the given shape boundary
     suggested_chunksize = np.full(len(shape), 0)
     shape_array = np.array(shape)
     dim_to_process = np.full(len(shape), True)
