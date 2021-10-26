@@ -136,7 +136,7 @@ def compute_chunksize(shape: Union[tuple, list],
             r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize_byte
         )[0]
         conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
-        compressed_chunksize_byte = int(value) * int(conversion_map[unit])
+        compressed_chunksize_byte = int(float(value)) * int(conversion_map[unit])
 
     # get product of chunksize along different dimensions before compression
     if compression_ratio < 1.:

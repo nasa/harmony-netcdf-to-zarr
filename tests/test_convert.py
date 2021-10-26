@@ -39,5 +39,16 @@ class TestConvert(unittest.TestCase):
         chunksize_result = convert.compute_chunksize(shape=(1000, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
+    def test_compute_chunksize_with_compression_args(self):
+        """
+        Test of compute_chunksize method with non-default compression args
+        """
+        chunksize_expected = (100, 680, 680)
+        chunksize_result = convert.compute_chunksize(shape=(100, 1000,1000),
+                                                     datatype='i4',
+                                                     compression_ratio = 6.8,
+                                                     compressed_chunksize_byte = '26.8 Mi')
+        assert chunksize_expected == chunksize_result
+
     def tearDown(self):
         pass
