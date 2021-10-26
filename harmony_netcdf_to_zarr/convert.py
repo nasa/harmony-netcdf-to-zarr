@@ -96,7 +96,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
         return scale_fn(unscaled)
 
 
-def regenerate_chunks(shape: Union[tuple, list],
+def compute_chunksize(shape: Union[tuple, list],
                       datatype: str,
                       compression_ratio: float = 7.2,
                       compressed_chunksize_byte: Union[int, str] = '100 Mi'):
@@ -211,7 +211,7 @@ def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
         dtype = src.dtype
         dtype = src.scale_factor.dtype if hasattr(src, 'scale_factor') else dtype
         dtype = src.add_offset.dtype if hasattr(src, 'add_offset') else dtype
-        new_chunks = regenerate_chunks(src.shape, dtype)
+        new_chunks = compute_chunksize(src.shape, dtype)
         dst = dst_group.create_dataset(name,
                                        data=src,
                                        shape=src.shape,

@@ -15,28 +15,28 @@ class TestConvert(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_regenerate_chunks_small(self):
+    def test_compute_chunksize_small(self):
         """
-        Test of regenerate_chunks method for a small input shape
+        Test of compute_chunksize method for a small input shape
         """
         chunksize_expected = (100, 100, 100)
-        chunksize_result = convert.regenerate_chunks(shape=(100, 100,100), datatype='f8')
+        chunksize_result = convert.compute_chunksize(shape=(100, 100,100), datatype='f8')
         assert chunksize_expected == chunksize_result
 
-    def test_regenerate_chunks_medium(self):
+    def test_compute_chunksize_medium(self):
         """
-        Test of regenerate_chunks method for a medium input shape
+        Test of compute_chunksize method for a medium input shape
         """
         chunksize_expected = (100, 971, 971)
-        chunksize_result = convert.regenerate_chunks(shape=(100, 1000,1000), datatype='f8')
+        chunksize_result = convert.compute_chunksize(shape=(100, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
-    def test_regenerate_chunks_large(self):
+    def test_compute_chunksize_large(self):
         """
-        Test of regenerate_chunks method for a large input shape
+        Test of compute_chunksize method for a large input shape
         """
         chunksize_expected = (455, 455, 455)
-        chunksize_result = convert.regenerate_chunks(shape=(1000, 1000,1000), datatype='f8')
+        chunksize_result = convert.compute_chunksize(shape=(1000, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
     def tearDown(self):
