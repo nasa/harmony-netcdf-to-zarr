@@ -112,17 +112,17 @@ def compute_chunksize(shape: Union[tuple, list],
         the zarr shape
     datatype: str
         the zarr data type
-        it must be recognized by numpy
+            which must be recognized by numpy
     compression_ratio: str
         expected compression ratio for each chunk
         default to 7.2 which is the compression ratio
-        from a chunk size of (3000, 3000) with double precision
-        compressed to 10 Mi
+            from a chunk size of (3000, 3000) with double precision
+            compressed to 10 Mi
     compressed_chunksize_byte: int/string
-        expected chunk size after compression
+        expected chunk size in bytes after compression
         If it's a string, assuming it follows NIST standard for binary prefix
             (https://physics.nist.gov/cuu/Units/binary.html)
-        except that only Ki, Mi, and Gi are allowed.
+            except that only Ki, Mi, and Gi are allowed.
         Space is optional between number and unit.
 
     Returns
