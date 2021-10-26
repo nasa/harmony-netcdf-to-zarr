@@ -101,7 +101,7 @@ def compute_chunksize(shape: Union[tuple, list],
                       compression_ratio: float = 7.2,
                       compressed_chunksize_byte: Union[int, str] = '100 Mi'):
     """
-    Compute the chunksize for a given shape and datattype
+    Compute the chunksize for a given shape and datatype
         based on the compression requirement
     We will try to make it equal along different dimensions,
         without exceeding the given shape boundary
