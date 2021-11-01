@@ -132,9 +132,16 @@ def compute_chunksize(shape: Union[tuple, list],
     """
     # convert compressed_chunksize_byte to integer if it's a str
     if type(compressed_chunksize_byte) == str:
-        (value, unit) = re.findall(
-            r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize_byte
-        )[0]
+        try:
+            (value, unit) = re.findall(
+                r"^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$", compressed_chunksize_byte
+            )[0]
+        except IndexError:
+            err_message = """Chunksize needs to be either an integer or string.
+If it's a string, assuming it follows NIST standard for binary prefix
+    (https://physics.nist.gov/cuu/Units/binary.html)
+except that only Ki, Mi, and Gi are allowed."""
+            raise ValueError(err_message)
         conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
         compressed_chunksize_byte = int(float(value)) * int(conversion_map[unit])
 

@@ -50,5 +50,15 @@ class TestConvert(unittest.TestCase):
                                                      compressed_chunksize_byte = '26.8 Mi')
         assert chunksize_expected == chunksize_result
 
+    def test_compute_chunksize_wrong_arguments(self):
+        """
+        Test of compute_chunksize method for a large input shape
+        """
+        with pytest.raises(ValueError) as execinfo:
+            chunksize_result = convert.compute_chunksize(shape=(100, 1000,1000),
+                                                         datatype='i4',
+                                                         compression_ratio = 6.8,
+                                                         compressed_chunksize_byte = '26.8 MB')
+
     def tearDown(self):
         pass
