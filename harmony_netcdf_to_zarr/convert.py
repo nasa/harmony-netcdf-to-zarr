@@ -13,6 +13,9 @@ from netCDF4 import Dataset
 
 region = os.environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
 
+# Some global that may be shared by different methods
+binary_prefix_conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
+
 
 def make_localstack_s3fs():
     host = os.environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
@@ -142,8 +145,7 @@ If it's a string, assuming it follows NIST standard for binary prefix
     (https://physics.nist.gov/cuu/Units/binary.html)
 except that only Ki, Mi, and Gi are allowed."""
             raise ValueError(err_message)
-        conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
-        compressed_chunksize_byte = int(float(value)) * int(conversion_map[unit])
+        compressed_chunksize_byte = int(float(value)) * int(binary_prefix_conversion_map[unit])
 
     # get product of chunksize along different dimensions before compression
     if compression_ratio < 1.:
