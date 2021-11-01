@@ -59,6 +59,11 @@ class TestConvert(unittest.TestCase):
                                                          datatype='i4',
                                                          compression_ratio = 6.8,
                                                          compressed_chunksize_byte = '26.8 MB')
+        err_message_expected = """Chunksize needs to be either an integer or string.
+If it's a string, assuming it follows NIST standard for binary prefix
+    (https://physics.nist.gov/cuu/Units/binary.html)
+except that only Ki, Mi, and Gi are allowed."""
+        assert str(execinfo.value) == err_message_expected
 
     def tearDown(self):
         pass
