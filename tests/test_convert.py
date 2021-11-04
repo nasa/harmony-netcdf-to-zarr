@@ -27,7 +27,7 @@ class TestConvert(unittest.TestCase):
         """
         Test of compute_chunksize method for a medium input shape
         """
-        chunksize_expected = (100, 307, 307)
+        chunksize_expected = (100, 140, 140)
         chunksize_result = convert.compute_chunksize(shape=(100, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
@@ -35,7 +35,7 @@ class TestConvert(unittest.TestCase):
         """
         Test of compute_chunksize method for a large input shape
         """
-        chunksize_expected = (211, 211, 211)
+        chunksize_expected = (125, 125, 125)
         chunksize_result = convert.compute_chunksize(shape=(1000, 1000,1000), datatype='f8')
         assert chunksize_expected == chunksize_result
 
