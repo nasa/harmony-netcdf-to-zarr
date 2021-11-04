@@ -101,7 +101,7 @@ def scale_attribute(src, attr, scale_factor, add_offset):
 
 def compute_chunksize(shape: Union[tuple, list],
                       datatype: str,
-                      compression_ratio: float = 7.2,
+                      compression_ratio: float = 1.5,
                       compressed_chunksize_byte: Union[int, str] = '10 Mi'):
     """
     Compute the chunksize for a given shape and datatype
