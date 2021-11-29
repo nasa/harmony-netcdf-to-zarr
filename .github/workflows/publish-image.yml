@@ -6,6 +6,9 @@ on:
       - main
     tags:
       - v*
+  release:
+    types: 
+      - published
 env:
 
   DOCKER_USER: bilts
