@@ -91,7 +91,9 @@ def scale_attribute(src, attr, scale_factor, add_offset):
     list | number
         the scaled data; either a list of floats or a float scalar
     """
-    scale_fn = lambda x: float(x * scale_factor + add_offset)
+    def scale_fn(x):
+        return float(x * scale_factor + add_offset)
+
     unscaled = getattr(src, attr)
     if isinstance(unscaled, collections.Sequence) or isinstance(unscaled, np.ndarray):
         return [scale_fn(u) for u in unscaled]
