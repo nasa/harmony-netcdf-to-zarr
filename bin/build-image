@@ -22,7 +22,7 @@ fi
 
 # If we're running Docker in Docker (DIND) then the docker daemon is on the host
 if [ -n "$DIND" ]; then
-  docker -H $DOCKER_DAEMON_ADDR build --build-arg service_lib_dir="$SERVICE_LIB_DIR" -t ${image}:${ag} .
+  docker -H $DOCKER_DAEMON_ADDR build --build-arg service_lib_dir="$SERVICE_LIB_DIR" -t ${image}:${tag} .
 else
   docker build --build-arg service_lib_dir="$SERVICE_LIB_DIR" --network host -t ${image}:${tag} .
 fi

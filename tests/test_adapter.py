@@ -54,7 +54,7 @@ def mock_mp_fork_popen_launch(class_object, process_obj):
         os.close(child_w)
         os.close(child_r)
         class_object.finalizer = mp_util.Finalize(class_object, mp_util.close_fds,
-                                       (parent_r, parent_w,))
+                                                  (parent_r, parent_w,))
         class_object.sentinel = parent_r
 
 
@@ -68,7 +68,7 @@ class TestAdapter(unittest.TestCase):
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
-    @patch.object(mp_Popen, '_launch', new = mock_mp_fork_popen_launch)
+    @patch.object(mp_Popen, '_launch', new=mock_mp_fork_popen_launch)
     @mock_s3
     def test_end_to_end_file_conversion(self, _callback_post):
         """
@@ -148,7 +148,7 @@ class TestAdapter(unittest.TestCase):
         self.assertEqual(out['data/vertical/north'][0, 2, 0], 0)
         self.assertEqual(out['data/vertical/south'][0, 2, 0], 16)
         self.assertEqual(out['data/vertical/south'][0, 0, 2], 0)
-        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 16) # scale_factor = 2
+        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 16)  # scale_factor = 2
         self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
         self.assertEqual(out['data/horizontal/west'][0, 0, 0], 16)
         self.assertEqual(out['data/horizontal/west'][0, 2, 2], 0)
@@ -164,16 +164,15 @@ class TestAdapter(unittest.TestCase):
         self.assertFalse(hasattr(out['data/horizontal/east'], 'missing_value'))
 
         # 2D Nested Float Arrays
-        self.assertEqual(out['location/lat'][0, 1],  5.5)
+        self.assertEqual(out['location/lat'][0, 1], 5.5)
         self.assertEqual(out['location/lon'][0, 1], -5.5)
 
         # 1D Root-Level Float Array sharing its name with a dimension
-        self.assertEqual(out['time'][0],  166536)
-
+        self.assertEqual(out['time'][0], 166536)
 
     @patch.dict(os.environ, MOCK_ENV)
     @patch.object(NetCDFToZarrAdapter, '_callback_post')
-    @patch.object(mp_Popen, '_launch', new = mock_mp_fork_popen_launch)
+    @patch.object(mp_Popen, '_launch', new=mock_mp_fork_popen_launch)
     @mock_s3
     def test_end_to_end_large_file_conversion(self, _callback_post):
         """
@@ -212,8 +211,7 @@ class TestAdapter(unittest.TestCase):
         self.assertEqual(str(out.tree()), contents)
 
         # -- Data Assertions --
-        self.assertEqual(out['data/var'].chunks, (10000,) )
-
+        self.assertEqual(out['data/var'].chunks, (10000,))
 
     @patch.object(argparse.ArgumentParser, 'error', return_value=None)
     def test_does_not_accept_non_harmony_clis(self, argparse_error):
