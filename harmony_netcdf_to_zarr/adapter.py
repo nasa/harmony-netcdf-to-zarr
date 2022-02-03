@@ -55,11 +55,14 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
         """
         Downloads, translates to Zarr, then re-uploads granules
         """
-        format = self.message.format
-        if not format or not format.mime or format.mime not in ['application/zarr', 'application/x-zarr']:
-            self.logger.error('The Zarr formatter cannot convert to %s, skipping' % (format.mime,))
+        if (
+            not self.message.format
+            or not self.message.format.mime
+            or self.message.format.mime not in ['application/zarr', 'application/x-zarr']
+        ):
+            self.logger.error(f'The Zarr formatter cannot convert to {self.message.format}, skipping')
             raise ZarrException('Request failed due to an incorrect service workflow')
-        format.process('mime')
+        self.message.format.process('mime')
         return super().invoke()
 
     def process_item(self, item, source):
@@ -104,7 +107,7 @@ class NetCDFToZarrAdapter(harmony.BaseHarmonyAdapter):
                 # Print the real error and convert to user-facing error that's more digestible
                 self.logger.error(e, exc_info=1)
                 filename = asset.href.split('?')[0].rstrip('/').split('/')[-1]
-                raise ZarrException('Could not convert file to Zarr: %s' % (filename))
+                raise ZarrException(f'Could not convert file to Zarr: {filename}') from e
 
             # Update the STAC record
             result.assets['data'] = Asset(root, title=name, media_type='application/x-zarr', roles=['data'])
