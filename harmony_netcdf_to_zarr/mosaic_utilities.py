@@ -357,25 +357,24 @@ def get_resolution(dimension_values: np.ndarray):
     """ Use the `numpy.gcd` function to calculate the resolution of an
         input grid.
 
-        First this function find the difference between the smallest
-        dimension value and all others. Next these differences are
-        converted to scaled integers, such that all significant figures
-        are preserved (e.g., 10.325 becomes 10325). The `numpy.gcd`
-        function, which requires integer input, is used to find the
-        greatest common divisor of these scaled integers, which represents
-        the output grid resolution scaled by the same factor used to create
-        the integer difference. Finally, the greatest common divisor is
-        divided by the scale factor to retrieve the grid resolution in the
-        domain of the original dimension values.
+        First this function scales all the input values to integers such that
+        all significant figures are preserved (e.g., 10.325 becomes 10325).
+        Next the difference between the scaled smallest dimension value and all
+        others are calculated. The `numpy.gcd` function, which requires
+        integer input, is used to find the greatest common divisor of these
+        scaled integers, which represents the output grid resolution scaled by
+        the same factor used to create the integer difference. Finally, the
+        greatest common divisor is divided by the scale factor to retrieve the
+        grid resolution in the domain of the original dimension values.
 
     """
-    diff_pairs = np.subtract(
-        dimension_values,
-        np.multiply(np.ones_like(dimension_values), dimension_values.min())
+    scaled_values, scale_factor = scale_to_integers(dimension_values)
+    scaled_diff_pairs = np.subtract(
+        scaled_values,
+        np.multiply(np.ones_like(dimension_values), scaled_values.min())
     )
-    non_zero_diffs = diff_pairs[diff_pairs.nonzero()]
-    scaled_diffs, scale_factor = scale_to_integers(non_zero_diffs)
-    greatest_common_divisor = np.gcd.reduce(scaled_diffs)
+    non_zero_diffs = scaled_diff_pairs[scaled_diff_pairs.nonzero()].astype(int)
+    greatest_common_divisor = np.gcd.reduce(non_zero_diffs)
     return np.divide(greatest_common_divisor, scale_factor)
 
 
