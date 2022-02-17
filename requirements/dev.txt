@@ -1,5 +1,5 @@
 autopep8 ~= 1.5
-coverage ~= 4.5
+coverage ~= 6.3.1
 flake8 ~= 3.8
 ipython ~= 7.17
 isort ~= 5.5

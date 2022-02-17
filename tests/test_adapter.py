@@ -8,34 +8,37 @@ import os
 import tempfile
 import textwrap
 import unittest
+from shutil import rmtree
+from tempfile import mkdtemp
 from unittest.mock import patch
 
 import boto3
 import s3fs
 import zarr
+from harmony.util import config as harmony_config
 from moto import mock_s3
 from multiprocessing.popen_fork import Popen as mp_Popen
-from multiprocessing.popen_fork import util as mp_util
+from multiprocessing import util as mp_util
+from pystac import Catalog
 
 from harmony.message import Message
 from harmony_netcdf_to_zarr.__main__ import main
-from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
-import harmony.util
+from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter, ZarrException
 
-from .util.file_creation import ROOT_METADATA_VALUES, create_full_dataset, create_large_dataset
-from .util.harmony_interaction import (MOCK_ENV, mock_message_for,
-                                       parse_callbacks)
+from .util.file_creation import (ROOT_METADATA_VALUES, create_full_dataset,
+                                 create_input_catalog, create_large_dataset)
+from .util.harmony_interaction import MOCK_ENV, mock_message
 
 logger = logging.getLogger()
 
 
 def mock_mp_fork_popen_launch(class_object, process_obj):
-    """
-    This method serves as a mocker
-        for multiprocessing.popen_fork.Popen._launch method
-    Basically it will only do the work in the parent process
-        because moto is holding all the objects in memory
-        and therefore they will be gone whenever children processes quit
+    """ `moto` is used to mock S3, however, `moto` does not work with
+        multiprocessing, because it holds objects in memory, and then the
+        objects are gone when the child processes quit. This method mocks
+        `multiprocessing.popen_fork.Popen._launch` to do the work in the
+        parent process.
+
     Parameters
     ----------
     class_object: object
@@ -43,37 +46,55 @@ def mock_mp_fork_popen_launch(class_object, process_obj):
     process_obj: object
         task object to be processed by multiprocessing.popen_fork.Popen._launch
     """
+
+    def attempt_to_close(*fds):
+        """ Mimic `multiprocessing.util.close_fds`, but wrap the `os.close`
+            statement with a test for `None`, to avoid issues with tests.
+
+        """
+        for fd in fds:
+            if fd is not None:
+                os.close(fd)
+
     code = 1
     parent_r, child_w = os.pipe()
     child_r, parent_w = os.pipe()
     class_object.pid = os.fork()
     if class_object.pid == 0:
-        os._exit(0)
+        code = 0
+        os._exit(code)
     else:
         code = process_obj._bootstrap()
         os.close(child_w)
         os.close(child_r)
-        class_object.finalizer = mp_util.Finalize(class_object, mp_util.close_fds,
+        class_object.finalizer = mp_util.Finalize(class_object, attempt_to_close,
                                                   (parent_r, parent_w,))
         class_object.sentinel = parent_r
 
 
 class TestAdapter(unittest.TestCase):
-    """
-    Tests the Harmony adapter
-    """
+    """ Tests the Harmony adapter """
     def setUp(self):
         self.maxdiff = None
-        self.config = harmony.util.config(validate=False)
+        self.config = harmony_config(validate=False)
+        self.metadata_dir = mkdtemp()
 
+    def tearDown(self):
+        rmtree(self.metadata_dir)
+
+    @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
-    @patch.object(NetCDFToZarrAdapter, '_callback_post')
     @patch.object(mp_Popen, '_launch', new=mock_mp_fork_popen_launch)
     @mock_s3
-    def test_end_to_end_file_conversion(self, _callback_post):
-        """
-        Full end-to-end test of the adapter from call to `main` to Harmony callbacks, including
-        ensuring the contents of the file are correct.  Mocks S3 interactions using @mock_s3.
+    def test_end_to_end_file_conversion(self, mock_download):
+        """ Full end-to-end test of the adapter from call to `main` to Harmony
+            STAC catalog output, including ensuring the contents of the file
+            are correct.
+
+            Mocks S3 interactions using @mock_s3.
+            Also mocks download of granules due to `moto` and `multiprocessing`
+            incompatibility issues.
+
         """
         conn = boto3.resource('s3')
         conn.create_bucket(
@@ -81,36 +102,42 @@ class TestAdapter(unittest.TestCase):
             CreateBucketConfiguration={'LocationConstraint': os.environ['AWS_DEFAULT_REGION']})
 
         netcdf_file = create_full_dataset()
-        netcdf_file2 = create_full_dataset()
+        stac_catalog_path = create_input_catalog([netcdf_file])
+        mock_download.return_value = [netcdf_file]
+
         try:
-            message = mock_message_for(netcdf_file, netcdf_file2)
-            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message],
+            message = mock_message()
+            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke',
+                  '--harmony-input', message, '--harmony-sources',
+                  stac_catalog_path, '--harmony-metadata-dir',
+                  self.metadata_dir],
                  config=self.config)
         finally:
             os.remove(netcdf_file)
-            os.remove(netcdf_file2)
 
-        callbacks = parse_callbacks(_callback_post)
+        # Assertions to ensure STAC output contains correct items, and the
+        # new output item has the correct temporal and spatial extents
+        output_catalog = Catalog.from_file(os.path.join(self.metadata_dir,
+                                                        'catalog.json'))
+        # There should be two items in the output catalog - the input and
+        # the output Zarr store
+        output_items = list(output_catalog.get_items())
+        self.assertEqual(len(output_items), 2)
 
-        # -- Progress and Callback Assertions --
-        # Assert that we got three callbacks, one for first file, one for the second, and the final message
-        self.assertEqual(len(callbacks), 3)
-        self.assertEqual(callbacks[0]['progress'], '50')
-        self.assertEqual(callbacks[0]['item[type]'], 'application/x-zarr')
-        self.assertEqual(callbacks[1]['progress'], '100')
-        self.assertEqual(callbacks[1]['item[type]'], 'application/x-zarr')
-        self.assertEqual(callbacks[2], {'status': 'successful'})
-        self.assertNotEqual(callbacks[0]['item[href]'], callbacks[1]['item[href]'])
-        self.assertTrue(callbacks[0]['item[href]'].endswith('.zarr'))
-        self.assertTrue(callbacks[1]['item[href]'].endswith('.zarr'))
+        # The Zarr STAC item will not start with 'id', unlike the input items.
+        # The first input Zarr item will have 'id0':
+        input_item = output_catalog.get_item('id0')
+        output_item = next(item for item in output_items
+                           if not item.id.startswith('id'))
 
-        # Now calls back with spatial and temporal if present in the incoming message
-        self.assertEqual(callbacks[0]['item[temporal]'],
-                         '2020-01-01T00:00:00.000Z,2020-01-02T00:00:00.000Z')
-        self.assertEqual(callbacks[0]['item[bbox]'], '-11.1,-22.2,33.3,44.4')
+        self.assertListEqual(output_item.bbox, input_item.bbox)
+        self.assertEqual(output_item.common_metadata.start_datetime,
+                         input_item.common_metadata.start_datetime)
+        self.assertEqual(output_item.common_metadata.end_datetime,
+                         input_item.common_metadata.end_datetime)
 
-        # Open the Zarr file that the adapter called back with
-        zarr_location = callbacks[0]['item[href]']
+        # Open the Zarr file using the URL from the output STAC item:
+        zarr_location = output_item.assets['data'].href
         store = s3fs.S3FileSystem().get_mapper(root=zarr_location, check=False)
         out = zarr.open_consolidated(store)
 
@@ -170,14 +197,20 @@ class TestAdapter(unittest.TestCase):
         # 1D Root-Level Float Array sharing its name with a dimension
         self.assertEqual(out['time'][0], 166536)
 
+    @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
-    @patch.object(NetCDFToZarrAdapter, '_callback_post')
     @patch.object(mp_Popen, '_launch', new=mock_mp_fork_popen_launch)
     @mock_s3
-    def test_end_to_end_large_file_conversion(self, _callback_post):
-        """
-        Full end-to-end test of the adapter to make sure rechunk is working.
-        Mocks S3 interactions using @mock_s3.
+    def test_end_to_end_large_file_conversion(self, mock_download):
+        """ Full end-to-end test of the adapter to make sure rechunk is
+            working. Mocks S3 interactions using @mock_s3.
+
+            Currently only uses a single NetCDF-4 input, as concatenation will
+            be supported only starting with DAS-1379.
+
+            Mocks download of granules due to `moto` and `multiprocessing`
+            incompatibility issues.
+
         """
         conn = boto3.resource('s3')
         conn.create_bucket(
@@ -185,19 +218,33 @@ class TestAdapter(unittest.TestCase):
             CreateBucketConfiguration={'LocationConstraint': os.environ['AWS_DEFAULT_REGION']})
 
         netcdf_file = create_large_dataset()
-        netcdf_file2 = create_large_dataset()
+        stac_catalog_path = create_input_catalog([netcdf_file])
+        mock_download.return_value = [netcdf_file]
+
         try:
-            message = mock_message_for(netcdf_file, netcdf_file2)
-            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message],
+            message = mock_message()
+            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke',
+                  '--harmony-input', message, '--harmony-sources',
+                  stac_catalog_path, '--harmony-metadata-dir', self.metadata_dir],
                  config=self.config)
         finally:
             os.remove(netcdf_file)
-            os.remove(netcdf_file2)
 
-        callbacks = parse_callbacks(_callback_post)
+        output_catalog = Catalog.from_file(os.path.join(self.metadata_dir,
+                                                        'catalog.json'))
 
-        # Open the Zarr file that the adapter called back with
-        zarr_location = callbacks[0]['item[href]']
+        # There should be two items in the output catalog - the input and
+        # the output Zarr store
+        output_items = list(output_catalog.get_items())
+        self.assertEqual(len(output_items), 2)
+
+        # The Zarr STAC item will not start with 'id', unlike the input items.
+        # The first input Zarr item will have 'id0':
+        output_item = next(item for item in output_items
+                           if not item.id.startswith('id'))
+
+        # Open the Zarr file using the URL from the output STAC item:
+        zarr_location = output_item.assets['data'].href
         store = s3fs.S3FileSystem().get_mapper(root=zarr_location, check=False)
         out = zarr.open_consolidated(store)
 
@@ -226,33 +273,32 @@ class TestAdapter(unittest.TestCase):
         """
         Tests that when USE_LOCALSTACK and LOCALSTACK_HOST are supplied the adapter uses localstack
         """
-        adapter = NetCDFToZarrAdapter(Message(mock_message_for('fake.nc')))
+        adapter = NetCDFToZarrAdapter(Message(mock_message()))
         self.assertEqual(adapter.s3.client_kwargs['endpoint_url'], 'http://fake-host:4572')
 
     @patch.dict(os.environ, MOCK_ENV)
-    @patch.object(NetCDFToZarrAdapter, '_callback_post')
     @mock_s3
-    def test_conversion_failure(self, _callback_post):
+    def test_conversion_failure(self):
+        """ Tests that when file conversion fails, e.g. due to a corrupted
+            input file, Harmony catches an exception and them the exception
+            gets rethrown as a `ZarrException`.
+
         """
-        Tests that when file conversion fails, e.g. due to an incorrect file format, Harmony receives an
-        error callback and the exception gets rethrown.
-        """
-        filename = tempfile.mkstemp()[1]
-        exception = None
-        try:
-            message = mock_message_for(filename)
-            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke', '--harmony-input', message],
+        filename = tempfile.mkstemp(suffix='.nc4')[1]
+        stac_catalog = create_input_catalog([filename])
+
+        message = mock_message()
+
+        with self.assertRaises(ZarrException) as context_manager:
+            main(['harmony_netcdf_to_zarr', '--harmony-action', 'invoke',
+                  '--harmony-input', message, '--harmony-sources',
+                  stac_catalog, '--harmony-metadata-dir', self.metadata_dir],
                  config=self.config)
-        except Exception as e:
-            exception = e
-        finally:
-            os.remove(filename)
 
-        callbacks = parse_callbacks(_callback_post)
-        self.assertEqual(len(callbacks), 1)
-        self.assertEqual(callbacks[0], {'error': 'Could not convert file to Zarr: %s' % (filename.split('/').pop())})
+            self.assertTrue(
+                str(context_manager.exception).startswith(
+                    'Could not create Zarr output:'
+                )
+            )
 
-        self.assertIsNotNone(exception)
-
-        # For services that fail with a human-readable message, we emit a generic exception after callback / log
-        self.assertEqual('Service operation failed', str(exception))
+        os.remove(filename)

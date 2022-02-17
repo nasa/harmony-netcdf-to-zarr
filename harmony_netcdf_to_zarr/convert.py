@@ -6,7 +6,7 @@ from multiprocessing import Semaphore
 from typing import Union
 import re
 
-import s3fs
+from s3fs import S3FileSystem
 import numpy as np
 import zarr
 from netCDF4 import Dataset
@@ -19,17 +19,17 @@ binary_prefix_conversion_map = {"Ki": 1024, "Mi": 1048576, "Gi": 1073741824}
 
 def make_localstack_s3fs():
     host = os.environ.get('LOCALSTACK_HOST') or 'host.docker.internal'
-    return s3fs.S3FileSystem(
+    return S3FileSystem(
         use_ssl=False,
         key='ACCESS_KEY',
         secret='SECRET_KEY',
         client_kwargs=dict(
             region_name=region,
-            endpoint_url='http://%s:4572' % (host)))
+            endpoint_url=f'http://{host}:4572'))
 
 
 def make_s3fs():
-    return s3fs.S3FileSystem(client_kwargs=dict(region_name=region))
+    return S3FileSystem(client_kwargs=dict(region_name=region))
 
 
 def netcdf_to_zarr(src, dst):
@@ -207,6 +207,7 @@ def __copy_variable(src, dst_group, name, sema=Semaphore(20)):
         s3 = make_localstack_s3fs()
     else:
         s3 = make_s3fs()
+
     group_name = os.path.join(dst_group.store.root, dst_group.path)
     dst = s3.get_mapper(root=group_name, check=False, create=True)
     dst_group = zarr.group(dst)

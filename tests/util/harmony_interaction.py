@@ -16,32 +16,23 @@ MOCK_ENV = dict(
 )
 
 
-def mock_message_for(*files):
-    """
-    Given a set of string file paths, returns a minimal Harmony message with granules defined
-    for each of the paths.  Granule URLs use the file:// protocol
+def mock_message() -> str:
+    """ Returns a minimal Harmony message. This has been updated to remove the
+        granules from `sources`, as these have been deprecated in favour of
+        STAC catalog entries.
 
-    Returns
-    -------
-    string
-        A JSON string containing the Harmony message
+        Returns
+        -------
+        string
+            A JSON string containing the Harmony message
     """
-    granules = []
-    for i, f in enumerate(files):
-        granules.append(dict(
-            id="G00%d-TEST" % (i,),
-            name=f.split('/')[-1],
-            url="file://" + f,
-            temporal=dict(start='2020-01-01T00:00:00.000Z', end='2020-01-02T00:00:00.000Z'),
-            bbox=[-11.1, -22.2, 33.3, 44.4]
-        ))
-    return json.dumps(dict(
-        user='jdoe',
-        callback='http://localhost/fake',
-        stagingLocation='s3://example-bucket/public/harmony/netcdf-to-zarr/example-uuid/',
-        sources=[dict(collection="C000-TEST", granules=granules)],
-        format=dict(mime='application/x-zarr')
-    ))
+    return json.dumps({
+        'user': 'jdoe',
+        'callback': 'http://localhost/fake',
+        'stagingLocation': 's3://example-bucket/public/harmony/netcdf-to-zarr/example-uuid/',
+        'sources': [{'collection': 'C000-TEST'}],
+        'format': {'mime': 'application/x-zarr'}
+    })
 
 
 def parse_callbacks(_callback_post):
