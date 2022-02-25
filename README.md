@@ -94,6 +94,9 @@ You can now run a workflow in your local Harmony stack and it will execute using
 
 #### Testing & running the Service Independently
 
+This will require credentials for the Harmony Sandbox NGAPShApplicationDeveloper
+to be present in your `~/.aws/credentials` file.
+
 Run tests with coverage reports:
 
     $ make test
