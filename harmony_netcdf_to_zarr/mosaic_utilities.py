@@ -13,6 +13,7 @@ import numpy as np
 from .exceptions import MixedDimensionTypeError
 
 
+BoundsTuple = Tuple[Optional[str], Optional[np.ndarray]]
 NetCDF4Attribute = Union[bytes, str, np.integer, np.floating, np.ndarray]
 
 seconds_delta = timedelta(seconds=1)
@@ -58,10 +59,13 @@ class DimensionInformation:
 
     """
     def __init__(self, dimension_path: str, dimension_values: np.ndarray,
-                 dimension_units: str):
+                 dimension_units: str, bounds_path: str = None,
+                 bounds_values: np.ndarray = None):
         self.dimension_path = dimension_path
         self.values = dimension_values
         self.units = dimension_units
+        self.bounds_path = bounds_path
+        self.bounds_values = bounds_values
         self.epoch = None
         self.time_unit = None
         self._get_epoch_and_unit()
@@ -112,8 +116,31 @@ class NetCDF4DimensionInformation(DimensionInformation):
 
     """
     def __init__(self, dataset: Dataset, dimension_path: str):
-        super().__init__(dimension_path, dataset[dimension_path][:],
-                         get_nc_attribute(dataset[dimension_path], 'units'))
+        dimension_variable = dataset[dimension_path]
+        bounds_path, bounds_values = self._get_bounds(dataset,
+                                                      dimension_variable)
+        super().__init__(dimension_path, dimension_variable[:],
+                         get_nc_attribute(dimension_variable, 'units'),
+                         bounds_path, bounds_values)
+
+    def _get_bounds(self, dataset: Dataset, dimension: Variable) -> BoundsTuple:
+        """ A helper method to check for the `bounds` attribute in the
+            dimension metadata. Following the CF-Conventions for a 1-D
+            dimension variable, it is expected that the `bounds` attribute will
+            be a reference to another variable in the NetCDF-4 file.
+            If present return the 2-D array.
+
+        """
+        bounds_attribute = get_nc_attribute(dimension, 'bounds')
+
+        if bounds_attribute is not None:
+            bounds_path = resolve_reference_path(dimension, bounds_attribute)
+            bounds_values = dataset[bounds_path][:]
+        else:
+            bounds_path = None
+            bounds_values = None
+
+        return bounds_path, bounds_values
 
 
 class DimensionsMapping:
@@ -241,24 +268,107 @@ class DimensionsMapping:
         return self._get_output_dimension(dimension_name, all_input_values,
                                           output_dimension_units)
 
-    @staticmethod
-    def _get_output_dimension(dimension_name: str,
+    def _get_output_dimension(self, dimension_name: str,
                               input_dimension_values: np.ndarray,
                               dimension_units: str) -> DimensionInformation:
         """ Use `get_resolution` to determine the greatest common divisor of
             all dimension input values. Calculate the output dimension values
             using this resolution, the minimum value of the input dimensions
-            and maximum value of the input dimensions. Finally return a new
-            `DimensionInformation` object encapsulating an aggregated output
-            dimension, which uses a regularly spaced grid that extends to
-            include all input dimension values.
+            and maximum value of the input dimensions.
+
+            Next  use the `_get_dimension_bounds` class method to check if the
+            input dimensions have an associated bounds variable, if so derive
+            the bounds values for the output dimension variable.
+
+            Finally return a new `DimensionInformation` object encapsulating an
+            aggregated output dimension, which uses a regularly spaced grid
+            that extends to include all input dimension values.
 
         """
         grid_resolution = get_resolution(input_dimension_values)
         output_dimension_values = get_grid_values(input_dimension_values,
                                                   grid_resolution)
+
+        bounds_path, bounds_values = self._get_dimension_bounds(
+            dimension_name, output_dimension_values
+        )
+
         return DimensionInformation(dimension_name, output_dimension_values,
-                                    dimension_units)
+                                    dimension_units, bounds_path,
+                                    bounds_values)
+
+    def _get_dimension_bounds(self, dimension_name,
+                              output_dimension_values) -> BoundsTuple:
+        """ Check if the input dimension in the first input granule had
+            associated bounds data. If so, assign the input bounds values to
+            the corresponding grid points in the output dimension values.
+
+            Next check for values in the output dimension that do not have
+            bounds data (due to gaps in coverage, e.g., temporally
+            non-consecutive input granules). If there are missing bounds values
+            for the output dimension, use the median difference between the
+            input bounds and dimension values to derive the missing values.
+
+            If the input dimension data did not have an associated bounds
+            variable, this method with return `None` for both the values and
+            path of the bounds.
+
+        """
+        bounds_path = next(
+            iter(self.input_dimensions[dimension_name].values())
+        ).bounds_path
+
+        if bounds_path is not None:
+            bounds_values = np.zeros((output_dimension_values.size, 2),
+                                     dtype=output_dimension_values.dtype)
+            filled_indices = set()
+
+            for input_dimension in self.input_dimensions[dimension_name].values():
+                # For each granule, match the dimension values to the output
+                # dimension values. Place the bounds values from the input
+                # granules in the corresponding places in the output bounds
+                # 2-D array. Also accumulate indices where bounds are applied,
+                # so that any missing bounds data can be identified.
+                input_indices = np.where(np.in1d(output_dimension_values,
+                                                 input_dimension.values))[0]
+
+                bounds_values[input_indices, :] = input_dimension.bounds_values[:]
+                filled_indices.update(input_indices)
+
+            if len(filled_indices) != output_dimension_values.size:
+                # The output bounds array has not been entirely filled
+                all_indices = set(range(output_dimension_values.size))
+                unfilled_indices = np.array(list(all_indices - filled_indices))
+                filled_indices = np.array(list(filled_indices))
+
+                # Find median differences between the input dimension values
+                # and the upper and lower bounds where the bounds are filled
+                median_lower = np.median(
+                    np.subtract(output_dimension_values,
+                                bounds_values.T[0])[filled_indices]
+                )
+                median_upper = np.median(
+                    np.subtract(bounds_values.T[1],
+                                output_dimension_values)[filled_indices]
+                )
+
+                # Apply the median differences to each point with missing
+                # bounds data to fill the rest of the bounds array.
+                bounds_values[unfilled_indices, 0] = np.subtract(
+                    output_dimension_values[unfilled_indices], median_lower
+                )
+                bounds_values[unfilled_indices, 1] = np.add(
+                    output_dimension_values[unfilled_indices], median_upper
+                )
+
+            # Remove any recurring decimal places:
+            _, scale_factor = scale_to_integers(output_dimension_values)
+            bounds_decimals = int(np.log10(scale_factor)) + 1
+            bounds_values = np.around(bounds_values, decimals=bounds_decimals)
+        else:
+            bounds_values = None
+
+        return bounds_path, bounds_values
 
 
 def get_nc_attribute(
@@ -384,13 +494,25 @@ def get_grid_values(input_values: np.ndarray,
         the input array to the maximum. The grid spacing will be the supplied
         resolution.
 
+        The scale factor is used to ensure the `np.linspace` output does not
+        include recurring decimals. For example, the GPM/IMERG longitude grid
+        output dimension previously included -179.8499999999, instead of
+        -179.85.
+
     """
+    _, scale_factor = scale_to_integers(input_values)
+
     grid_max = input_values.max()
     grid_min = input_values.min()
 
     if grid_min != grid_max:
-        n_grid_points = int(((grid_max - grid_min) / grid_resolution) + 1)
+        n_grid_points = int(
+            np.round(((grid_max - grid_min) / grid_resolution))
+        ) + 1
     else:
         n_grid_points = 1
 
-    return np.linspace(grid_min, grid_max, n_grid_points)
+    grid_values = np.linspace(grid_min, grid_max, n_grid_points,
+                              dtype=input_values.dtype)
+
+    return np.around(grid_values, decimals=int(np.log10(scale_factor)))

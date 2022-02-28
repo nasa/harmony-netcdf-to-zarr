@@ -5,6 +5,7 @@ from unittest import TestCase
 
 from netCDF4 import Dataset
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from harmony_netcdf_to_zarr.mosaic_utilities import (DimensionInformation,
                                                      DimensionsMapping,
@@ -96,6 +97,38 @@ class TestMosaicUtilities(TestCase):
 
         return dataset
 
+    @staticmethod
+    def generate_netcdf_with_bounds(dataset_name: str,
+                                    dimension_name: str,
+                                    dimension_data: np.ndarray,
+                                    bounds_data: np.ndarray) -> Dataset:
+        """ Generate a NetCDF-4 file to be used in unit tests with a dimension
+            variable and an associated bounds variable.
+
+            |- dimension_name (1-D dimension variable, N elements)
+            |- dimension_name_bnds (2-D bounds variable, N x 2 elements)
+
+        """
+        bounds_name = f'{dimension_name}_bnds'
+
+        bounds_dataset = Dataset(dataset_name, diskless=True, mode='w')
+        bounds_dataset.createDimension('nv', size=2)
+        bounds_dataset.createDimension(dimension_name,
+                                       size=dimension_data.size)
+        dimension = bounds_dataset.createVariable(dimension_name,
+                                                  dimension_data.dtype,
+                                                  dimensions=(dimension_name, ))
+        dimension[:] = dimension_data
+        dimension.setncattr('bounds', bounds_name)
+        dimension.setncattr('units', 'm')
+
+        bounds = bounds_dataset.createVariable(bounds_name, bounds_data.dtype,
+                                               dimensions=(dimension_name, 'nv'))
+        bounds[:] = bounds_data
+        bounds.setncattr('units', 'm')
+
+        return bounds_dataset
+
     @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
     def test_dimensions_mapping_input(self, mock_dataset):
         """ Ensure the test granule is successfully parsed and that all
@@ -144,24 +177,20 @@ class TestMosaicUtilities(TestCase):
         self.assertIsNone(latitude_dimension['second_dataset.nc'].epoch)
         self.assertIsNone(latitude_dimension[self.test_dataset_path].time_unit)
         self.assertIsNone(latitude_dimension['second_dataset.nc'].time_unit)
-        np.testing.assert_array_equal(
-            latitude_dimension[self.test_dataset_path].values, self.lat_data
-        )
-        np.testing.assert_array_equal(
-            latitude_dimension['second_dataset.nc'].values, self.lat_data
-        )
+        assert_array_equal(latitude_dimension[self.test_dataset_path].values,
+                           self.lat_data)
+        assert_array_equal(latitude_dimension['second_dataset.nc'].values,
+                           self.lat_data)
 
         longitude_dimension = dimensions_mapping.input_dimensions['/longitude']
         self.assertIsNone(longitude_dimension[self.test_dataset_path].epoch)
         self.assertIsNone(longitude_dimension['second_dataset.nc'].epoch)
         self.assertIsNone(longitude_dimension[self.test_dataset_path].time_unit)
         self.assertIsNone(longitude_dimension['second_dataset.nc'].time_unit)
-        np.testing.assert_array_equal(
-            longitude_dimension[self.test_dataset_path].values, self.lon_data
-        )
-        np.testing.assert_array_equal(
-            longitude_dimension['second_dataset.nc'].values, self.lon_data
-        )
+        assert_array_equal(longitude_dimension[self.test_dataset_path].values,
+                           self.lon_data)
+        assert_array_equal(longitude_dimension['second_dataset.nc'].values,
+                           self.lon_data)
 
         time_dimension = dimensions_mapping.input_dimensions['/time']
         self.assertEqual(time_dimension[self.test_dataset_path].epoch,
@@ -172,14 +201,10 @@ class TestMosaicUtilities(TestCase):
                          timedelta(seconds=1))
         self.assertEqual(time_dimension['second_dataset.nc'].time_unit,
                          timedelta(seconds=1))
-        np.testing.assert_array_equal(
-            time_dimension[self.test_dataset_path].values,
-            np.array([30.0])
-        )
-        np.testing.assert_array_equal(
-            time_dimension['second_dataset.nc'].values,
-            np.array([60.0])
-        )
+        assert_array_equal(time_dimension[self.test_dataset_path].values,
+                           np.array([30.0]))
+        assert_array_equal(time_dimension['second_dataset.nc'].values,
+                           np.array([60.0]))
 
     @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
     def test_dimensions_mapping_output_merra(self, mock_dataset):
@@ -231,10 +256,8 @@ class TestMosaicUtilities(TestCase):
             )
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].epoch)
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].time_unit)
-            np.testing.assert_array_equal(
-                merra_mapping.output_dimensions['/latitude'].values,
-                self.lat_data
-            )
+            assert_array_equal(merra_mapping.output_dimensions['/latitude'].values,
+                               self.lat_data)
 
             # Check the output longitude has correct values and units.
             self.assertEqual(
@@ -243,18 +266,23 @@ class TestMosaicUtilities(TestCase):
             )
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].epoch)
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].time_unit)
-            np.testing.assert_array_equal(
-                merra_mapping.output_dimensions['/longitude'].values,
-                self.lon_data
-            )
+            assert_array_equal(merra_mapping.output_dimensions['/longitude'].values,
+                               self.lon_data)
 
             # Check the output time has correct values and units.
             self.assertEqual(merra_mapping.output_dimensions['/time'].units,
                              'minutes since 2020-01-01T00:30:00')
-            np.testing.assert_array_equal(
-                merra_mapping.output_dimensions['/time'].values,
-                np.linspace(0, 2820, 48)  # 48 values of consecutive hours
-            )
+            assert_array_equal(merra_mapping.output_dimensions['/time'].values,
+                               np.linspace(0, 2820, 48))  # 48 values of consecutive hours
+
+            # Check none of the output dimensions have bounds information, as
+            # none of the inputs did.
+            self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_values)
+            self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_path)
+            self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_values)
+            self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_path)
+            self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_values)
+            self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_path)
 
         with self.subTest('MERRA-2 data with a gap between granules.'):
             mock_dataset.side_effect = [dataset_three, dataset_four]
@@ -272,10 +300,8 @@ class TestMosaicUtilities(TestCase):
             )
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].epoch)
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].time_unit)
-            np.testing.assert_array_equal(
-                merra_mapping.output_dimensions['/latitude'].values,
-                self.lat_data
-            )
+            assert_array_equal(merra_mapping.output_dimensions['/latitude'].values,
+                               self.lat_data)
 
             # Check the output longitude has correct values and units.
             self.assertEqual(
@@ -284,18 +310,23 @@ class TestMosaicUtilities(TestCase):
             )
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].epoch)
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].time_unit)
-            np.testing.assert_array_equal(
-                merra_mapping.output_dimensions['/longitude'].values,
-                self.lon_data
-            )
+            assert_array_equal(merra_mapping.output_dimensions['/longitude'].values,
+                               self.lon_data)
 
             # Check the output time has correct values and units.
             self.assertEqual(merra_mapping.output_dimensions['/time'].units,
                              'minutes since 2020-01-03T00:30:00')
-            np.testing.assert_array_equal(
-                merra_mapping.output_dimensions['/time'].values,
-                np.linspace(0, 4260, 72)  # 72 values of consecutive hours
-            )
+            assert_array_equal(merra_mapping.output_dimensions['/time'].values,
+                               np.linspace(0, 4260, 72))  # 72 values of consecutive hours
+
+            # Check none of the output dimensions have bounds information, as
+            # none of the inputs did.
+            self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_values)
+            self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_path)
+            self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_values)
+            self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_path)
+            self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_values)
+            self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_path)
 
     @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
     def test_dimensions_mapping_output_gpm(self, mock_dataset):
@@ -342,10 +373,8 @@ class TestMosaicUtilities(TestCase):
         )
         self.assertIsNone(gpm_mapping.output_dimensions['/latitude'].epoch)
         self.assertIsNone(gpm_mapping.output_dimensions['/latitude'].time_unit)
-        np.testing.assert_array_equal(
-            gpm_mapping.output_dimensions['/latitude'].values,
-            self.lat_data
-        )
+        assert_array_equal(gpm_mapping.output_dimensions['/latitude'].values,
+                           self.lat_data)
 
         # Check the output longitude has correct values and units.
         self.assertEqual(
@@ -354,18 +383,23 @@ class TestMosaicUtilities(TestCase):
         )
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].epoch)
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].time_unit)
-        np.testing.assert_array_equal(
-            gpm_mapping.output_dimensions['/longitude'].values,
-            self.lon_data
-        )
+        assert_array_equal(gpm_mapping.output_dimensions['/longitude'].values,
+                           self.lon_data)
 
         # Check the output time has correct values and units.
         self.assertEqual(gpm_mapping.output_dimensions['/time'].units,
                          self.temporal_units)
-        np.testing.assert_array_equal(
-            gpm_mapping.output_dimensions['/time'].values,
-            expected_output_time_values
-        )
+        assert_array_equal(gpm_mapping.output_dimensions['/time'].values,
+                           expected_output_time_values)
+
+        # Check none of the output dimensions have bounds information, as
+        # none of the inputs did.
+        self.assertIsNone(gpm_mapping.output_dimensions['/latitude'].bounds_values)
+        self.assertIsNone(gpm_mapping.output_dimensions['/latitude'].bounds_path)
+        self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].bounds_values)
+        self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].bounds_path)
+        self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_values)
+        self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_path)
 
     @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
     def test_dimensions_mapping_output_spatial(self, mock_dataset):
@@ -406,10 +440,8 @@ class TestMosaicUtilities(TestCase):
         )
         self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].epoch)
         self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].time_unit)
-        np.testing.assert_array_equal(
-            spatial_mapping.output_dimensions['/latitude'].values,
-            expected_output_lat_data
-        )
+        assert_array_equal(spatial_mapping.output_dimensions['/latitude'].values,
+                           expected_output_lat_data)
 
         # Check the output longitude has correct values and units.
         self.assertEqual(
@@ -418,18 +450,128 @@ class TestMosaicUtilities(TestCase):
         )
         self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].epoch)
         self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].time_unit)
-        np.testing.assert_array_equal(
-            spatial_mapping.output_dimensions['/longitude'].values,
-            expected_output_lon_data
-        )
+        assert_array_equal(spatial_mapping.output_dimensions['/longitude'].values,
+                           expected_output_lon_data)
 
         # Check the output time has correct values and units.
         self.assertEqual(spatial_mapping.output_dimensions['/time'].units,
                          self.temporal_units)
-        np.testing.assert_array_equal(
-            spatial_mapping.output_dimensions['/time'].values,
-            np.array([0])
-        )
+        assert_array_equal(spatial_mapping.output_dimensions['/time'].values,
+                           np.array([0]))
+
+        # Check none of the output dimensions have bounds information, as
+        # none of the inputs did.
+        self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].bounds_values)
+        self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].bounds_path)
+        self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].bounds_values)
+        self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].bounds_path)
+        self.assertIsNone(spatial_mapping.output_dimensions['/time'].bounds_values)
+        self.assertIsNone(spatial_mapping.output_dimensions['/time'].bounds_path)
+
+    @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
+    def test_dimensions_mapping_bounds(self, mock_dataset):
+        """ Ensure that when input dimensions have bounds information, the
+            output dimensions also contain the correct bounds information.
+            This should cover two cases:
+
+            * All output dimension values map to an input dimension value
+              and therefore all output bounds values can be copied from the
+              input data
+            * There are output dimension values that do not map to input
+              dimension values (due to gaps in coverage) and the corresponding
+              bounds values for those gaps must be calculated.
+
+        """
+        dimension_data_one = np.linspace(0, 2, 3)
+        bounds_data_one = np.array([[-0.5, 0.5],
+                                    [0.5, 1.5],
+                                    [1.5, 2.5]])
+
+        dimension_data_two = np.linspace(3, 5, 3)
+        bounds_data_two = np.array([[2.5, 3.5],
+                                    [3.5, 4.5],
+                                    [4.5, 5.5]])
+
+        dimension_data_three = np.linspace(9, 11, 3)
+        bounds_data_three = np.array([[8.5, 9.5],
+                                      [9.5, 10.5],
+                                      [10.5, 11.5]])
+
+        with self.subTest('All output dimension values have input bounds'):
+            dataset_one = self.generate_netcdf_with_bounds('bounds_one.nc4',
+                                                           'dim',
+                                                           dimension_data_one,
+                                                           bounds_data_one)
+
+            dataset_two = self.generate_netcdf_with_bounds('bounds_two.nc4',
+                                                           'dim',
+                                                           dimension_data_two,
+                                                           bounds_data_two)
+            mock_dataset.side_effect = [dataset_one, dataset_two]
+
+            mapping = DimensionsMapping([dataset_one, dataset_two])
+
+            expected_output_bounds = np.array([[-0.5, 0.5],
+                                               [0.5, 1.5],
+                                               [1.5, 2.5],
+                                               [2.5, 3.5],
+                                               [3.5, 4.5],
+                                               [4.5, 5.5]])
+
+            assert_array_equal(mapping.output_dimensions['/dim'].values,
+                               np.array([0, 1, 2, 3, 4, 5]))
+            self.assertEqual(mapping.output_dimensions['/dim'].bounds_path,
+                             '/dim_bnds')
+            assert_array_equal(mapping.output_dimensions['/dim'].bounds_values,
+                               expected_output_bounds)
+
+            for dataset in [dataset_one, dataset_two]:
+                if dataset.isopen():
+                    dataset.close()
+
+        with self.subTest('Some output dimension values are in coverage gaps'):
+            dataset_one = self.generate_netcdf_with_bounds('bounds_three.nc4',
+                                                           'dim',
+                                                           dimension_data_one,
+                                                           bounds_data_one)
+
+            dataset_two = self.generate_netcdf_with_bounds('bounds_four.nc4',
+                                                           'dim',
+                                                           dimension_data_two,
+                                                           bounds_data_two)
+
+            dataset_three = self.generate_netcdf_with_bounds('bounds_five.nc4',
+                                                             'dim',
+                                                             dimension_data_three,
+                                                             bounds_data_three)
+
+            mock_dataset.side_effect = [dataset_one, dataset_two, dataset_three]
+
+            mapping = DimensionsMapping([dataset_one, dataset_two, dataset_three])
+
+            expected_output_bounds = np.array([[-0.5, 0.5],
+                                               [0.5, 1.5],
+                                               [1.5, 2.5],
+                                               [2.5, 3.5],
+                                               [3.5, 4.5],
+                                               [4.5, 5.5],
+                                               [5.5, 6.5],
+                                               [6.5, 7.5],
+                                               [7.5, 8.5],
+                                               [8.5, 9.5],
+                                               [9.5, 10.5],
+                                               [10.5, 11.5]])
+
+            assert_array_equal(mapping.output_dimensions['/dim'].values,
+                               np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))
+            self.assertEqual(mapping.output_dimensions['/dim'].bounds_path,
+                             '/dim_bnds')
+            assert_array_equal(mapping.output_dimensions['/dim'].bounds_values,
+                               expected_output_bounds)
+
+            for dataset in [dataset_one, dataset_two, dataset_three]:
+                if dataset.isopen():
+                    dataset.close()
 
     def test_dimension_information(self):
         """ Ensure the base class can be instantiated with values, units and,
@@ -437,8 +579,16 @@ class TestMosaicUtilities(TestCase):
 
         """
         dimension_path = '/path/to/dimension'
-        dimension_values = np.linspace(0, 10, 11)
+        dimension_values = np.linspace(0, 5, 6)
         spatial_units = 'degrees_east'
+        bounds_path = '/path/to/bounds'
+        bounds_values = np.array([[-0.5, 0.5],
+                                  [0.5, 1.5],
+                                  [1.5, 2.5],
+                                  [2.5, 3.5],
+                                  [3.5, 4.5],
+                                  [4.5, 5.5]])
+
         with self.subTest('A non-temporal dimension is extracted'):
             spatial_dimension = DimensionInformation(dimension_path,
                                                      dimension_values,
@@ -447,8 +597,11 @@ class TestMosaicUtilities(TestCase):
             self.assertEqual(spatial_dimension.units, spatial_units)
             self.assertIsNone(spatial_dimension.epoch)
             self.assertIsNone(spatial_dimension.time_unit)
-            np.testing.assert_array_equal(spatial_dimension.values,
-                                          dimension_values)
+            assert_array_equal(spatial_dimension.values, dimension_values)
+
+            # bounds are not defined, so values and path should be `None`:
+            self.assertIsNone(spatial_dimension.bounds_values)
+            self.assertIsNone(spatial_dimension.bounds_path)
 
         with self.subTest('A temporal dimension is extracted'):
             temporal_dimension = DimensionInformation(dimension_path,
@@ -458,8 +611,25 @@ class TestMosaicUtilities(TestCase):
             self.assertEqual(temporal_dimension.units, self.temporal_units)
             self.assertEqual(temporal_dimension.epoch, self.test_epoch)
             self.assertEqual(temporal_dimension.time_unit, timedelta(seconds=1))
-            np.testing.assert_array_equal(temporal_dimension.values,
-                                          dimension_values)
+            assert_array_equal(temporal_dimension.values, dimension_values)
+
+            # bounds are not defined, so values and path should be `None`:
+            self.assertIsNone(spatial_dimension.bounds_values)
+            self.assertIsNone(spatial_dimension.bounds_path)
+
+        with self.subTest('Bounds data are preserved when supplied'):
+            bounds_dimension = DimensionInformation(dimension_path,
+                                                    dimension_values,
+                                                    spatial_units,
+                                                    bounds_path,
+                                                    bounds_values)
+            self.assertEqual(bounds_dimension.dimension_path, dimension_path)
+            self.assertEqual(bounds_dimension.units, spatial_units)
+            self.assertIsNone(bounds_dimension.epoch)
+            self.assertIsNone(bounds_dimension.time_unit)
+            assert_array_equal(bounds_dimension.values, dimension_values)
+            self.assertEqual(bounds_dimension.bounds_path, bounds_path)
+            assert_array_equal(bounds_dimension.bounds_values, bounds_values)
 
     def test_dimension_information_get_values(self):
         """ Ensure the values can be retrieved from a `DimensionInformation`
@@ -482,21 +652,19 @@ class TestMosaicUtilities(TestCase):
             spatial_dimension = DimensionInformation('/variable',
                                                      dimension_values,
                                                      'degrees_east')
-            np.testing.assert_array_equal(spatial_dimension.get_values(),
-                                          dimension_values)
+            assert_array_equal(spatial_dimension.get_values(), dimension_values)
 
         with self.subTest('Temporal dimension, no output epoch.'):
             temporal_dimension = DimensionInformation('/variable',
                                                       dimension_values,
                                                       input_temporal_units)
-            np.testing.assert_array_equal(temporal_dimension.get_values(),
-                                          dimension_values)
+            assert_array_equal(temporal_dimension.get_values(), dimension_values)
 
         with self.subTest('Temporal dimension, output epoch.'):
             temporal_dimension = DimensionInformation('/variable',
                                                       dimension_values,
                                                       input_temporal_units)
-            np.testing.assert_array_equal(
+            assert_array_equal(
                 temporal_dimension.get_values(output_temporal_units),
                 values_with_output_epoch
             )
@@ -516,8 +684,11 @@ class TestMosaicUtilities(TestCase):
             self.assertEqual(spatial_dimension.units, 'degrees_east')
             self.assertIsNone(spatial_dimension.epoch)
             self.assertIsNone(spatial_dimension.time_unit)
-            np.testing.assert_array_equal(spatial_dimension.values,
-                                          self.test_dataset['/longitude'][:])
+            assert_array_equal(spatial_dimension.values,
+                               self.test_dataset['/longitude'][:])
+            # bounds are not defined, so values and path should be `None`:
+            self.assertIsNone(spatial_dimension.bounds_path)
+            self.assertIsNone(spatial_dimension.bounds_values)
 
         with self.subTest('A temporal dimension is extracted'):
             time_dimension = NetCDF4DimensionInformation(self.test_dataset,
@@ -526,8 +697,39 @@ class TestMosaicUtilities(TestCase):
             self.assertEqual(time_dimension.units, self.temporal_units)
             self.assertEqual(time_dimension.epoch, self.test_epoch)
             self.assertEqual(time_dimension.time_unit, timedelta(seconds=1))
-            np.testing.assert_array_equal(time_dimension.values,
-                                          self.test_dataset['/time'][:])
+            assert_array_equal(time_dimension.values,
+                               self.test_dataset['/time'][:])
+
+            # bounds are not defined, so values and path should be `None`:
+            self.assertIsNone(time_dimension.bounds_path)
+            self.assertIsNone(time_dimension.bounds_values)
+
+        with self.subTest('A dimension with bounds information is extracted'):
+            dimension_data = np.linspace(0, 5, 6)
+            bounds_data = np.array([[-0.5, 0.5],
+                                    [0.5, 1.5],
+                                    [1.5, 2.5],
+                                    [2.5, 3.5],
+                                    [3.5, 4.5],
+                                    [4.5, 5.5]])
+            bounds_dataset = self.generate_netcdf_with_bounds('bounds.nc4',
+                                                              'dimension',
+                                                              dimension_data,
+                                                              bounds_data)
+
+            bounds_dimension = NetCDF4DimensionInformation(bounds_dataset,
+                                                           '/dimension')
+
+            self.assertEqual(bounds_dimension.dimension_path, '/dimension')
+            self.assertEqual(bounds_dimension.units, 'm')
+            self.assertIsNone(bounds_dimension.epoch)
+            self.assertIsNone(bounds_dimension.time_unit)
+            assert_array_equal(bounds_dimension.values, dimension_data)
+            self.assertEqual(bounds_dimension.bounds_path, '/dimension_bnds')
+            assert_array_equal(bounds_dimension.bounds_values, bounds_data)
+
+            if bounds_dataset.isopen():
+                bounds_dataset.close()
 
     def test_get_nc_attribute(self):
         """ Ensure the helper function wrapping the `getncattr` class method
@@ -639,15 +841,14 @@ class TestMosaicUtilities(TestCase):
                 np.array([0.0, 0.125, 0.25, 0.375, 0.5])
             )
 
-            np.testing.assert_array_equal(output_integers,
-                                          np.array([0, 125, 250, 375, 500]))
+            assert_array_equal(output_integers, np.array([0, 125, 250, 375, 500]))
             self.assertEqual(scale_factor, 1000)
 
         with self.subTest('Integer input'):
             input_values = np.array([1, 2, 3, 4])
             output_integers, scale_factor = scale_to_integers(input_values)
 
-            np.testing.assert_array_equal(output_integers, input_values)
+            assert_array_equal(output_integers, input_values)
             self.assertEqual(scale_factor, 1)
 
         with self.subTest('Recurring decimal in array, no infinite loop'):
@@ -655,8 +856,7 @@ class TestMosaicUtilities(TestCase):
             output_integers, scale_factor = scale_to_integers(
                 np.array([0.0, 0.99999999999, 2.0])
             )
-            np.testing.assert_array_equal(output_integers,
-                                          np.array([0, 1e10, 2e10]))
+            assert_array_equal(output_integers, np.array([0, 1e10, 2e10]))
             self.assertEqual(scale_factor, 1e10)
 
     def test_get_resolution(self):
@@ -707,4 +907,4 @@ class TestMosaicUtilities(TestCase):
             output_grid = get_grid_values(input_values, 0.0)
 
             # For a single input value, the output should be same as input:
-            np.testing.assert_array_equal(input_values, output_grid)
+            assert_array_equal(input_values, output_grid)
