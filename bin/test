@@ -4,5 +4,6 @@ set -ex
 
 coverage erase
 coverage run --source harmony_netcdf_to_zarr -m unittest discover -s tests -t ..
+coverage combine
 coverage report
 coverage xml

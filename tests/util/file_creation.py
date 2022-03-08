@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from datetime import datetime
 from os.path import join as path_join
 from tempfile import mkdtemp, mkstemp
 from typing import List
@@ -150,5 +151,85 @@ def create_large_dataset(filename=None):
 
         # Fill data values
         data_var[:] = np.arange(num_points)
+
+    return filename
+
+
+def create_gpm_dataset(test_dir: str, file_datetime: datetime) -> str:
+    """ Create a granule representative of GPM data. """
+    epoch_datetime = datetime(1970, 1, 1)
+    filename = path_join(test_dir, f'{uuid4()}.nc4')
+
+    science_variables = ['HQObservationTime', 'HQPrecipitation',
+                         'HQPrecipSource', 'IRkalmanFilterWeight',
+                         'IRPrecipitation', 'precipitationCal',
+                         'precipitationQualityIndex', 'precipitationUncal',
+                         'probabilityLiquidPrecipitation', 'randomError']
+
+    with Dataset(filename, 'w') as dataset:
+        grid_group = dataset.createGroup('Grid')
+        grid_group.createDimension('lat', 1800)
+        lat = grid_group.createVariable('lat', np.float32, ('lat',))
+        lat[:] = np.linspace(-89.95, 89.95, 1800, dtype=np.float32)
+        lat.setncattr('units', 'degrees_north')
+        lat.setncattr('bounds', 'lat_bnds')
+        lat.setncattr('standard_name', 'latitude')
+        lat.setncattr('axis', 'Y')
+
+        grid_group.createDimension('latv', 2)
+        lat_bounds = grid_group.createVariable('lat_bnds', np.float32,
+                                               ('lat', 'latv'))
+        lat_bounds_values = np.array([
+            np.linspace(-90.0, 89.9, 1800, dtype=np.float32),
+            np.linspace(-89.9, 90.0, 1800, dtype=np.float32)
+        ], dtype=np.float32)
+
+        lat_bounds[:] = lat_bounds_values.T
+        lat_bounds.setncattr('units', 'degrees_north')
+
+        grid_group.createDimension('lon', 3600)
+        lon = grid_group.createVariable('lon', np.float32, ('lon',))
+        lon[:] = np.linspace(-179.95, 179.95, 3600, dtype=np.float32)
+        lon.setncattr('units', 'degrees_east')
+        lon.setncattr('bounds', 'lon_bnds')
+        lon.setncattr('standard_name', 'longitude')
+        lon.setncattr('axis', 'X')
+
+        grid_group.createDimension('lonv', 2)
+        lon_bounds = grid_group.createVariable('lon_bnds', np.float32,
+                                               ('lon', 'lonv'))
+
+        lon_bounds_values = np.array([
+            np.linspace(-180.0, 179.9, 3600, dtype=np.float32),
+            np.linspace(-179.9, 180.0, 3600, dtype=np.float32)
+        ], dtype=np.float32)
+
+        lon_bounds[:] = lon_bounds_values.T
+        lon_bounds.setncattr('units', 'degrees_east')
+
+        grid_group.createDimension('time', 1)
+        time_variable = grid_group.createVariable('time', np.float64,
+                                                  ('time',))
+        time_variable[0] = (file_datetime - epoch_datetime).total_seconds()
+        time_variable.setncattr('units', 'seconds since 1970-01-01T00:00:00')
+        time_variable.setncattr('bounds', 'time_bnds')
+        time_variable.setncattr('standard_name', 'time')
+        time_variable.setncattr('calendar', 'julian')
+        time_variable.setncattr('axis', 'T')
+
+        grid_group.createDimension('nv', 2)
+        time_bounds = grid_group.createVariable('time_bnds', np.float64,
+                                                ('time', 'nv'))
+        time_bounds[0][0] = time_variable[0]
+        time_bounds[0][1] = time_variable[0] + 1800.0
+        time_bounds.setncattr('units', 'seconds since 1970-01-01T00:00:00')
+
+        for variable_name in science_variables:
+            variable = grid_group.createVariable(variable_name, np.float64,
+                                                 ('time', 'lon', 'lat'),
+                                                 fill_value=-9999)
+            variable[:] = np.random.rand(1, 3600, 1800)
+            variable.setncattr('coordinates', 'time lon lat')
+            variable.setncattr('DimensionNames', 'time,lon,lat')
 
     return filename

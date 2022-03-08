@@ -13,7 +13,7 @@ from tempfile import mkdtemp
 from harmony import BaseHarmonyAdapter
 from harmony.util import generate_output_filename, HarmonyException
 
-from .convert import netcdf_to_zarr, make_localstack_s3fs, make_s3fs
+from .convert import make_localstack_s3fs, make_s3fs, mosaic_to_zarr
 from .download_utilities import download_granules
 from .stac_utilities import get_netcdf_urls, get_output_catalog
 
@@ -22,18 +22,14 @@ ZARR_MEDIA_TYPES = ['application/zarr', 'application/x-zarr']
 
 
 class ZarrException(HarmonyException):
-    """
-    Exception thrown during Zarr conversion
-    """
+    """ Exception thrown during Zarr conversion """
 
     def __init__(self, message=None):
         super().__init__(message, 'harmonyservices/netcdf-to-zarr')
 
 
 class NetCDFToZarrAdapter(BaseHarmonyAdapter):
-    """
-    Translates NetCDF4 to Zarr
-    """
+    """ Translates NetCDF4 to Zarr """
 
     def __init__(self, message, catalog=None, config=None):
         """
@@ -96,9 +92,6 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
                                                  self.message.accessToken,
                                                  self.config, self.logger)
 
-            # Enable during DAS-1379:
-            # dimensions_mapping = DimensionsMapping(local_file_paths)
-
             if len(local_file_paths) == 1:
                 output_name = generate_output_filename(netcdf_urls[0],
                                                        ext='.zarr')
@@ -112,13 +105,7 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
             zarr_store = self.s3.get_mapper(root=zarr_root, check=False,
                                             create=True)
 
-            if len(local_file_paths) == 1:
-                # Temporarily retain old version of NetCDF-to-Zarr service
-                netcdf_to_zarr(local_file_paths[0], zarr_store)
-            else:
-                # TODO: DAS-1379 - implement many-to-one Zarr output and
-                # enable concatenation.
-                raise NotImplementedError('Concatenation is not yet supported.')
+            mosaic_to_zarr(local_file_paths, zarr_store)
 
             return get_output_catalog(self.catalog, zarr_root)
         except Exception as service_exception:
