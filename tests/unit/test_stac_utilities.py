@@ -11,7 +11,8 @@ from harmony_netcdf_to_zarr.stac_utilities import (get_item_date_range,
                                                    get_output_bounding_box,
                                                    get_output_catalog,
                                                    get_output_date_range,
-                                                   get_output_item)
+                                                   get_output_item,
+                                                   is_netcdf_asset)
 
 
 class TestStacUtilities(TestCase):
@@ -271,3 +272,32 @@ class TestStacUtilities(TestCase):
         with self.subTest('Start and end datetimes'):
             self.assertTupleEqual(get_item_date_range(start_end_item),
                                   (self.datetime_one, self.datetime_two))
+
+    def test_is_netcdf_asset(self):
+        """ Ensure that a NetCDF-4 asset can be correctly identified via either
+            the asset media type or the file extension. The check on the file
+            extension should handle both uppercase and lowercase.
+
+        """
+        test_args = [['NetCDF-4 media type', 'application/x-netcdf4', '.h5'],
+                     ['NetCDF media type', 'application/x-netcdf', '.nc4'],
+                     ['HDF-5 media type', 'application/x-hdf5', '.h5'],
+                     ['.nc4 extension', None, '.nc4'],
+                     ['.nc extension', None, '.nc'],
+                     ['.h5 extension', None, '.h5'],
+                     ['.hdf5 extension', None, '.hdf5'],
+                     ['.hdf extension', None, '.hdf'],
+                     ['.HDF5 extension', None, '.HDF5']]
+
+        for description, media_type, extension in test_args:
+            with self.subTest(description):
+                test_asset = Asset(f'test{extension}', media_type=media_type)
+                self.assertTrue(is_netcdf_asset(test_asset))
+
+        bad_args = [['Bad media-type', 'application/tiff', '.tiff'],
+                    ['Missing media-type, bad extension', None, '.tiff']]
+
+        for description, media_type, extension in bad_args:
+            with self.subTest(description):
+                test_asset = Asset(f'test{extension}', media_type=media_type)
+                self.assertFalse(is_netcdf_asset(test_asset))

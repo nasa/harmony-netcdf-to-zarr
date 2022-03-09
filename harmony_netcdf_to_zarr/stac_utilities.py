@@ -13,6 +13,7 @@ from harmony.util import bbox_to_geometry
 from pystac import Asset, Catalog, Item
 
 
+VALID_EXTENSIONS = ('.nc4', '.nc', '.h5', '.hdf5', '.hdf')
 VALID_MEDIA_TYPES = ['application/x-hdf5', 'application/x-netcdf',
                      'application/x-netcdf4']
 
@@ -38,9 +39,19 @@ def get_item_url(item: Item) -> Optional[str]:
 
     """
     return next((asset.href for asset in item.assets.values()
-                 if 'data' in (asset.roles or [])
-                 and asset.media_type in VALID_MEDIA_TYPES),
+                 if 'data' in (asset.roles or []) and is_netcdf_asset(asset)),
                 None)
+
+
+def is_netcdf_asset(asset: Asset) -> bool:
+    """ Check that a `pystac.Asset` is a valid NetCDF-4 granule. This can be
+        ascertained via either the media type or by checking the extension of
+        granule itself if that media type is absent.
+
+    """
+    return (asset.media_type in VALID_MEDIA_TYPES
+            or (asset.media_type is None
+                and asset.href.lower().endswith(VALID_EXTENSIONS)))
 
 
 def get_output_catalog(input_catalog: Catalog, zarr_root: str) -> Catalog:
