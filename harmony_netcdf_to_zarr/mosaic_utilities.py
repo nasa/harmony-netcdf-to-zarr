@@ -261,8 +261,11 @@ class DimensionsMapping:
         output_dimension_units = dimension_units[np.argmin(dimension_epochs)]
 
         all_input_values = np.unique(
-            np.concatenate([dimension_input.get_values(output_dimension_units)
-                            for dimension_input in dimension_inputs.values()])
+            np.concatenate(
+                [dimension_input.get_values(output_dimension_units)
+                 for dimension_input in dimension_inputs.values()],
+                dtype=list(dimension_inputs.values())[0].get_values().dtype
+            )
         )
 
         return self._get_output_dimension(dimension_name, all_input_values,

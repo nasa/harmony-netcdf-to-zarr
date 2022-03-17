@@ -1,11 +1,14 @@
 """ Unit tests for the `harmony_netcdf_to_zarr.download_utilities` module. """
 from logging import getLogger
+from multiprocessing import Queue
+from multiprocessing.managers import Namespace
 from os import remove as remove_file
 from os.path import dirname, exists as file_exists, join as join_path
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
+from unittest.mock import patch
 
 from harmony.util import config
 
@@ -62,8 +65,15 @@ class TestDownloadUtilities(TestCase):
             error downloading one of the granules. In this test, the error will
             be caused by requesting a file with an unknown protocol.
 
+            The `RuntimeError` that is raised should also preserve the message
+            from the exception that was raised within the child process.
+
         """
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(RuntimeError) as context_manager:
             download_granules(['unknown_protocol_file.nc4'], self.temp_dir,
                               self.access_token, self.harmony_config,
                               self.logger)
+
+            self.assertTrue(str(context_manager.exception).startswith(
+                'Unable to download a url of unknown type'
+            ))
