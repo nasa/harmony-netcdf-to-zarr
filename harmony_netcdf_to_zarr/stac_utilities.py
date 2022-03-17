@@ -60,9 +60,7 @@ def get_output_catalog(input_catalog: Catalog, zarr_root: str) -> Catalog:
         information, representing the overall ranges from the combined inputs.
 
     """
-    output_catalog = input_catalog.clone()
-    output_catalog.id = str(uuid4())
-
+    output_catalog = Catalog(str(uuid4()), input_catalog.description)
     output_item = get_output_item(list(input_catalog.get_items()), zarr_root)
     output_catalog.add_item(output_item)
 

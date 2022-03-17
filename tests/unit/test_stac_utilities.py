@@ -107,9 +107,9 @@ class TestStacUtilities(TestCase):
             self.assertIsNone(get_item_url(item))
 
     def test_get_output_catalog(self):
-        """ Ensure the return from this function includes all items and assets
-            from the input `pystac.Catalog`, alongside with a new item that
-            combines the spatial and temporal information from the inputs.
+        """ Ensure the return from this function includes only the Zarr store
+            created by the service, which combines the spatial and temporal
+            information from the inputs.
 
         """
         input_item_one = Item('id1', self.bbox_one_geometry, self.bbox_one,
@@ -124,28 +124,22 @@ class TestStacUtilities(TestCase):
 
         output_catalog = get_output_catalog(input_catalog, zarr_root)
 
-        # Ensure the output catalog has the same title and description as the
-        # input, but a different ID:
+        # Ensure the output catalog has the same description as the input, but
+        # a different ID:
         self.assertNotEqual(input_catalog.id, output_catalog.id)
-        self.assertEqual(input_catalog.title, output_catalog.title)
         self.assertEqual(input_catalog.description, output_catalog.description)
 
-        # Ensure the output catalog has all input items, plus the output item:
-        output_items = {item.id: item for item in output_catalog.get_items()}
-        self.assertEqual(len(output_items), 3)
-        self.assertIn('id1', output_items)
-        self.assertEqual(output_items['id1'], input_item_one)
-        self.assertIn('id2', output_items)
-        self.assertEqual(output_items['id2'], input_item_two)
+        # Ensure the output catalog has only the output Zarr store item:
+        output_items = list(output_catalog.get_items())
+        self.assertEqual(len(output_items), 1)
 
-        # Retrieve the extra output item, and confirm it is the Zarr output:
-        output_item = next(item for item in output_items.values()
-                           if item.id not in ['id1', 'id2'])
-        self.assertListEqual(output_item.bbox, self.combined_bbox)
-        self.assertIsNone(output_item.datetime)
-        self.assertEqual(output_item.common_metadata.start_datetime,
+        # Confirm the output STAC item is the Zarr store, and it combined the
+        # spatial and temporal values from the input granules:
+        self.assertListEqual(output_items[0].bbox, self.combined_bbox)
+        self.assertIsNone(output_items[0].datetime)
+        self.assertEqual(output_items[0].common_metadata.start_datetime,
                          self.datetime_three)
-        self.assertEqual(output_item.common_metadata.end_datetime,
+        self.assertEqual(output_items[0].common_metadata.end_datetime,
                          self.datetime_four)
 
     def test_get_output_item(self):
