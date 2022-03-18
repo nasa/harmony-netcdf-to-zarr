@@ -77,21 +77,18 @@ class TestAdapter(TestCase):
         # new output item has the correct temporal and spatial extents
         output_catalog = Catalog.from_file(os.path.join(self.metadata_dir,
                                                         'catalog.json'))
-        # There should be two items in the output catalog - the input and
-        # the output Zarr store
+        # There should be one item in the output catalog: the output Zarr store
         output_items = list(output_catalog.get_items())
-        self.assertEqual(len(output_items), 2)
+        self.assertEqual(len(output_items), 1)
 
-        # The Zarr STAC item will not start with 'id', unlike the input items.
-        # The first input Zarr item will have 'id0':
-        input_item = output_catalog.get_item('id0')
-        output_item = next(item for item in output_items
-                           if not item.id.startswith('id'))
+        # Read the input STAC catalog for spatial and temporal comparisons:
+        input_catalog = Catalog.from_file(stac_catalog_path)
+        input_item = list(input_catalog.get_items())[0]
 
-        self.assertListEqual(output_item.bbox, input_item.bbox)
-        self.assertEqual(output_item.common_metadata.start_datetime,
+        self.assertListEqual(output_items[0].bbox, input_item.bbox)
+        self.assertEqual(output_items[0].common_metadata.start_datetime,
                          input_item.common_metadata.start_datetime)
-        self.assertEqual(output_item.common_metadata.end_datetime,
+        self.assertEqual(output_items[0].common_metadata.end_datetime,
                          input_item.common_metadata.end_datetime)
 
         out = open_consolidated(local_zarr)
@@ -186,10 +183,9 @@ class TestAdapter(TestCase):
         output_catalog = Catalog.from_file(os.path.join(self.metadata_dir,
                                                         'catalog.json'))
 
-        # There should be two items in the output catalog - the input and
-        # the output Zarr store
+        # There should be one item in the output catalog: the output Zarr store
         output_items = list(output_catalog.get_items())
-        self.assertEqual(len(output_items), 2)
+        self.assertEqual(len(output_items), 1)
 
         out = open_consolidated(local_zarr)
 
@@ -253,21 +249,19 @@ class TestAdapter(TestCase):
         # new output item has the correct temporal and spatial extents
         output_catalog = Catalog.from_file(os.path.join(self.metadata_dir,
                                                         'catalog.json'))
-        # There should be two items in the output catalog - the input and
-        # the output Zarr store
+
+        # Read input catalog for bounding box and temporal comparisons:
+        input_catalog = Catalog.from_file(stac_catalog_path)
+        input_item = list(input_catalog.get_items())[0]
+
+        # There should be one item in the output catalog: the output Zarr store
         output_items = list(output_catalog.get_items())
-        self.assertEqual(len(output_items), 3)
+        self.assertEqual(len(output_items), 1)
 
-        # The Zarr STAC item will not start with 'id', unlike the input items.
-        # The first input Zarr item will have 'id0':
-        input_item = output_catalog.get_item('id0')
-        output_item = next(item for item in output_items
-                           if not item.id.startswith('id'))
-
-        self.assertListEqual(output_item.bbox, input_item.bbox)
-        self.assertEqual(output_item.common_metadata.start_datetime,
+        self.assertListEqual(output_items[0].bbox, input_item.bbox)
+        self.assertEqual(output_items[0].common_metadata.start_datetime,
                          input_item.common_metadata.start_datetime)
-        self.assertEqual(output_item.common_metadata.end_datetime,
+        self.assertEqual(output_items[0].common_metadata.end_datetime,
                          input_item.common_metadata.end_datetime)
 
         out = open_consolidated(local_zarr)
