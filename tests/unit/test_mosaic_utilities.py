@@ -120,12 +120,12 @@ class TestMosaicUtilities(TestCase):
                                                   dimensions=(dimension_name, ))
         dimension[:] = dimension_data
         dimension.setncattr('bounds', bounds_name)
-        dimension.setncattr('units', 'm')
+        dimension.setncattr('units', 'seconds since 2001-01-01T00:00:00')
 
         bounds = bounds_dataset.createVariable(bounds_name, bounds_data.dtype,
                                                dimensions=(dimension_name, 'nv'))
         bounds[:] = bounds_data
-        bounds.setncattr('units', 'm')
+        bounds.setncattr('units', 'seconds since 2001-01-01T00:00:00')
 
         return bounds_dataset
 
@@ -246,6 +246,12 @@ class TestMosaicUtilities(TestCase):
                                                'merra_two.nc4'])
 
             # Check the expected dimensions are in the output mapping.
+            # Note: aggregation of non-temporal dimensions has been disabled
+            # as the Swath Projector can have values with slight rounding
+            # errors in their output grid dimensions.
+            self.assertSetEqual(set(merra_mapping.output_dimensions.keys()),
+                                {'/time'})
+            """
             self.assertSetEqual(set(merra_mapping.output_dimensions.keys()),
                                 {'/time', '/latitude', '/longitude'})
 
@@ -268,6 +274,7 @@ class TestMosaicUtilities(TestCase):
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].time_unit)
             assert_array_equal(merra_mapping.output_dimensions['/longitude'].values,
                                self.lon_data)
+            """
 
             # Check the output time has correct values and units.
             self.assertEqual(merra_mapping.output_dimensions['/time'].units,
@@ -277,10 +284,12 @@ class TestMosaicUtilities(TestCase):
 
             # Check none of the output dimensions have bounds information, as
             # none of the inputs did.
+            """
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_values)
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_path)
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_values)
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_path)
+            """
             self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_values)
             self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_path)
 
@@ -290,6 +299,13 @@ class TestMosaicUtilities(TestCase):
                                                'merra_four.nc4'])
 
             # Check the expected dimensions are in the output mapping.
+            # Note: aggregation of non-temporal dimensions has been disabled
+            # as the Swath Projector can have values with slight rounding
+            # errors in their output grid dimensions.
+            self.assertSetEqual(set(merra_mapping.output_dimensions.keys()),
+                                {'/time'})
+
+            """
             self.assertSetEqual(set(merra_mapping.output_dimensions.keys()),
                                 {'/time', '/latitude', '/longitude'})
 
@@ -312,6 +328,7 @@ class TestMosaicUtilities(TestCase):
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].time_unit)
             assert_array_equal(merra_mapping.output_dimensions['/longitude'].values,
                                self.lon_data)
+            """
 
             # Check the output time has correct values and units.
             self.assertEqual(merra_mapping.output_dimensions['/time'].units,
@@ -321,10 +338,12 @@ class TestMosaicUtilities(TestCase):
 
             # Check none of the output dimensions have bounds information, as
             # none of the inputs did.
+            """
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_values)
             self.assertIsNone(merra_mapping.output_dimensions['/latitude'].bounds_path)
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_values)
             self.assertIsNone(merra_mapping.output_dimensions['/longitude'].bounds_path)
+            """
             self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_values)
             self.assertIsNone(merra_mapping.output_dimensions['/time'].bounds_path)
 
@@ -363,6 +382,12 @@ class TestMosaicUtilities(TestCase):
                                          'gpm_three.nc4'])
 
         # Check the expected dimensions are in the output mapping.
+        # Note: aggregation of non-temporal dimensions has been disabled
+        # as the Swath Projector can have values with slight rounding
+        # errors in their output grid dimensions.
+        self.assertSetEqual(set(gpm_mapping.output_dimensions.keys()),
+                            {'/time'})
+        """
         self.assertSetEqual(set(gpm_mapping.output_dimensions.keys()),
                             {'/time', '/latitude', '/longitude'})
 
@@ -385,6 +410,7 @@ class TestMosaicUtilities(TestCase):
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].time_unit)
         assert_array_equal(gpm_mapping.output_dimensions['/longitude'].values,
                            self.lon_data)
+        """
 
         # Check the output time has correct values and units.
         self.assertEqual(gpm_mapping.output_dimensions['/time'].units,
@@ -394,10 +420,12 @@ class TestMosaicUtilities(TestCase):
 
         # Check none of the output dimensions have bounds information, as
         # none of the inputs did.
+        """
         self.assertIsNone(gpm_mapping.output_dimensions['/latitude'].bounds_values)
         self.assertIsNone(gpm_mapping.output_dimensions['/latitude'].bounds_path)
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].bounds_values)
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].bounds_path)
+        """
         self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_values)
         self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_path)
 
@@ -430,6 +458,12 @@ class TestMosaicUtilities(TestCase):
                                              'spatial_two.nc4'])
 
         # Check the expected dimensions are in the output mapping.
+        # Note: aggregation of non-temporal dimensions has been disabled
+        # as the Swath Projector can have values with slight rounding
+        # errors in their output grid dimensions.
+        self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
+                            {'/time'})
+        """
         self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
                             {'/time', '/latitude', '/longitude'})
 
@@ -452,6 +486,7 @@ class TestMosaicUtilities(TestCase):
         self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].time_unit)
         assert_array_equal(spatial_mapping.output_dimensions['/longitude'].values,
                            expected_output_lon_data)
+        """
 
         # Check the output time has correct values and units.
         self.assertEqual(spatial_mapping.output_dimensions['/time'].units,
@@ -461,10 +496,12 @@ class TestMosaicUtilities(TestCase):
 
         # Check none of the output dimensions have bounds information, as
         # none of the inputs did.
+        """
         self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].bounds_values)
         self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].bounds_path)
         self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].bounds_values)
         self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].bounds_path)
+        """
         self.assertIsNone(spatial_mapping.output_dimensions['/time'].bounds_values)
         self.assertIsNone(spatial_mapping.output_dimensions['/time'].bounds_path)
 
@@ -721,9 +758,10 @@ class TestMosaicUtilities(TestCase):
                                                            '/dimension')
 
             self.assertEqual(bounds_dimension.dimension_path, '/dimension')
-            self.assertEqual(bounds_dimension.units, 'm')
-            self.assertIsNone(bounds_dimension.epoch)
-            self.assertIsNone(bounds_dimension.time_unit)
+            self.assertEqual(bounds_dimension.units,
+                             'seconds since 2001-01-01T00:00:00')
+            self.assertEqual(bounds_dimension.epoch, datetime(2001, 1, 1))
+            self.assertEqual(bounds_dimension.time_unit, timedelta(seconds=1))
             assert_array_equal(bounds_dimension.values, dimension_data)
             self.assertEqual(bounds_dimension.bounds_path, '/dimension_bnds')
             assert_array_equal(bounds_dimension.bounds_values, bounds_data)
