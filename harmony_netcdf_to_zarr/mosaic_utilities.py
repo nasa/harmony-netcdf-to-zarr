@@ -227,6 +227,11 @@ class DimensionsMapping:
             elif any(are_inputs_temporal):
                 raise MixedDimensionTypeError(dimension_name)
             else:
+                # Temporarily comment out non-temporal aggregation as there are
+                # issues with Swath Projector output not always being on a
+                # perfectly spaced grid
+                pass
+                """
                 # All input granule dimensions with this path are non-temporal
                 # That means that the raw values are likely all the same units.
                 all_input_values = np.unique(
@@ -243,6 +248,7 @@ class DimensionsMapping:
                 self.output_dimensions[dimension_name] = self._get_output_dimension(
                     dimension_name, all_input_values, output_dimension_units
                 )
+                """
 
     def _get_temporal_output_dimension(self,
                                        dimension_inputs: Dict[str, DimensionInformation],
