@@ -1,4 +1,3 @@
-from collections import Sequence
 from multiprocessing import Manager, Process, Queue
 from multiprocessing.managers import Namespace
 from os import cpu_count, environ
@@ -146,7 +145,7 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
         zarr_store = DirectoryStore(shared_namespace.zarr_root)
 
     zarr_synchronizer = ProcessSynchronizer(
-        f'{splitext(shared_namespace.zarr_root[0])}.sync'
+        f'{splitext(shared_namespace.zarr_root)[0]}.sync'
     )
     dim_mapping = DimensionsMapping(input_granules)
 
@@ -158,8 +157,7 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
 
         try:
             with Dataset(input_granule, 'r') as input_dataset:
-                input_dataset.set_auto_mask(False)
-                input_dataset.set_auto_scale(True)
+                input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
                              create_zarr_group(zarr_store, overwrite=False),
                              zarr_synchronizer, dim_mapping,
@@ -170,38 +168,6 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             # input NetCDF-4 files.
             shared_namespace.exception = str(exception)
             raise exception
-
-
-def scale_attribute(src: NetCDFVariable, attr: Any, scale_factor: Number,
-                    add_offset: Number):
-    """
-    Scales an unscaled NetCDF attribute
-
-
-    Parameters
-    ----------
-    src : netCDF4.Variable
-        the source variable to copy
-    attr : collections.Sequence | numpy.ndarray | number
-        the NetCDF variable attribute that needs to be scaled
-    scale_factor : number
-        the number used to multiply unscaled data
-    add_offset : number
-        the number added to unscaled data after multiplied by scale_factor
-
-    Returns
-    -------
-    list | number
-        the scaled data; either a list of floats or a float scalar
-    """
-    def scale_fn(x):
-        return float(x * scale_factor + add_offset)
-
-    unscaled = getattr(src, attr)
-    if isinstance(unscaled, Sequence) or isinstance(unscaled, np.ndarray):
-        return [scale_fn(u) for u in unscaled]
-    else:
-        return scale_fn(unscaled)
 
 
 def __copy_aggregated_dimensions(dim_mapping: DimensionsMapping,
@@ -332,20 +298,6 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
     if chunks == 'contiguous' or chunks is None:
         chunks = netcdf_variable.shape
 
-    # Apply scale factor and offset to attributes that are not automatically
-    # scaled by NetCDF
-    scaled = {}
-    scale_factor = getattr(netcdf_variable, 'scale_factor', 1.0)
-    add_offset = getattr(netcdf_variable, 'add_offset', 0.0)
-
-    if scale_factor != 1.0 or add_offset != 0.0:
-        unscaled_attributes = ['valid_range', 'valid_min', 'valid_max',
-                               '_FillValue', 'missing_value']
-        present_attributes = [attr for attr in unscaled_attributes
-                              if hasattr(netcdf_variable, attr)]
-        scaled = {attr: scale_attribute(netcdf_variable, attr, scale_factor, add_offset)
-                  for attr in present_attributes}
-
     if not chunks and len(netcdf_variable.dimensions) == 0:
         # Treat a 0-dimensional NetCDF variable as a zarr group
         zarr_variable = zarr_group.require_group(variable_name)
@@ -363,8 +315,7 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
                                                   aggregated_dimensions)
         new_chunks = compute_chunksize(aggregated_shape, dtype)
 
-        fill_value = scaled.get('_FillValue',
-                                getattr(netcdf_variable, '_FillValue', 0))
+        fill_value = getattr(netcdf_variable, '_FillValue', 0)
 
         zarr_variable = zarr_group.require_dataset(variable_name,
                                                    shape=aggregated_shape,
@@ -381,7 +332,7 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
                                 resolved_variable_name, dim_mapping)
 
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
-    __copy_attrs(netcdf_variable, zarr_variable, scaled,
+    __copy_attrs(netcdf_variable, zarr_variable,
                  _ARRAY_DIMENSIONS=list(netcdf_variable.dimensions))
 
 
@@ -471,7 +422,7 @@ def __insert_data_slice(netcdf_variable: NetCDFVariable, zarr_variable: ZarrArra
 
 
 def __copy_attrs(netcdf_input: Union[NetCDFVariable, NetCDFGroup],
-                 zarr_output: Union[ZarrGroup, ZarrArray], scaled={}, **kwargs):
+                 zarr_output: Union[ZarrGroup, ZarrArray], **kwargs):
     """ Copies all attributes from the source group or variable into the
         destination group or variable. If the Zarr store already has that
         attribute, it is not overwritten. For example, the units attribute of
@@ -486,9 +437,6 @@ def __copy_attrs(netcdf_input: Union[NetCDFVariable, NetCDFGroup],
             The source from which to copy attributes
         zarr_output : zarr.hierarchy.Group | zarr.core.Array
             The destination into which to copy attributes.
-        scaled : dict
-            attributes that require, and have been, scaled by the scale_factor
-            and add_offset attributes
         **kwargs : dict
             Additional attributes to add to the destination
 
@@ -498,9 +446,6 @@ def __copy_attrs(netcdf_input: Union[NetCDFVariable, NetCDFGroup],
                       for key in netcdf_input.ncattrs()}
 
     new_attributes.update(kwargs)
-    new_attributes.update(scaled)
-    new_attributes.pop('scale_factor', None)
-    new_attributes.pop('add_offset', None)
 
     for existing_attribute in existing_attributes:
         new_attributes.pop(existing_attribute, None)

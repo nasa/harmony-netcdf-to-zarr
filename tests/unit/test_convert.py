@@ -16,8 +16,7 @@ from harmony_netcdf_to_zarr.convert import (__copy_attrs as copy_attrs,
                                             __copy_group as copy_group,
                                             compute_chunksize,
                                             __get_aggregated_shape as get_aggregated_shape,
-                                            __insert_data_slice as insert_data_slice,
-                                            scale_attribute)
+                                            __insert_data_slice as insert_data_slice)
 from harmony_netcdf_to_zarr.mosaic_utilities import DimensionsMapping
 from tests.util.file_creation import create_gpm_dataset
 
@@ -75,40 +74,16 @@ class TestConvert(TestCase):
         )
         self.assertEqual(str(execinfo.value), err_message_expected)
 
-    def test_scale_attribute(self):
-        """ Ensure an attribute is correctly retrieved and scaled from a
-            NetCDF-4 variable.
-
-            This should include either a single value attribute, or an
-            attribute with a list type value.
-
-        """
-        with self.subTest('Single value attribute'):
-            with Dataset('test.nc4', diskless=True, mode='w') as dataset:
-                test_variable = dataset.createVariable('var_name', np.float64)
-                test_variable.setncattr('float_value', 2.0)
-
-                self.assertEqual(
-                    scale_attribute(test_variable, 'float_value', 3.0, 4.0),
-                    10.0
-                )
-
-        with self.subTest('List value attribute'):
-            with Dataset('test2.nc4', diskless=True, mode='w') as dataset:
-                test_variable = dataset.createVariable('list_var', np.float64)
-                test_variable.setncattr('list_value', [1.0, 2.0, 3.0])
-
-                self.assertListEqual(
-                    scale_attribute(test_variable, 'list_value', 3.0, 4.0),
-                    [7.0, 10.0, 13.0]
-                )
-
     def test_copy_attrs(self):
         """ Ensure that attributes are copied to a Zarr store, and that any
-            pre-existing attributes are not removed or overwritten.
+            pre-existing attributes are not removed or overwritten (either
+            by values from the NetCDF-4 attributes or keyword arguments to the
+            function).
+
+            Attributes included as keyword arguments to the `__copy_attrs`
+            function should also be written to the Zarr store.
 
         """
-
         with self.subTest('Attributes only updated.'):
             zarr_store = DirectoryStore(path_join(self.temp_dir, 'test.zarr'))
             zarr_group = create_zarr_group(zarr_store)
@@ -116,17 +91,18 @@ class TestConvert(TestCase):
 
             with Dataset('test.nc4', diskless=True, mode='w') as dataset:
                 dataset.setncattr('attr_three', 'val_three')
-                dataset.setncattr('attr_two', 'val_four')
+                dataset.setncattr('attr_two', 'val_four_not_copied')
 
-                copy_attrs(dataset, zarr_group, {'scaled': 1.0})
+                copy_attrs(dataset, zarr_group, kwarg_attr=1.0,
+                           attr_one='value_five_not_copied')
 
             self.assertDictEqual(zarr_group.attrs.asdict(),
                                  {'attr_one': 'val_one',
                                   'attr_two': 'val_two',
                                   'attr_three': 'val_three',
-                                  'scaled': 1.0})
+                                  'kwarg_attr': 1.0})
 
-        with self.subTest('scaled_factor and add_offset omitted.'):
+        with self.subTest('scaled_factor and add_offset written.'):
             zarr_store = DirectoryStore(path_join(self.temp_dir, 'test_two.zarr'))
             zarr_group = create_zarr_group(zarr_store)
 
@@ -137,7 +113,9 @@ class TestConvert(TestCase):
 
                 copy_attrs(dataset, zarr_group)
 
-            self.assertDictEqual(zarr_group.attrs.asdict(), {'units': 'm'})
+            self.assertDictEqual(zarr_group.attrs.asdict(),
+                                 {'add_offset': 0.0, 'scale_factor': 1.0,
+                                  'units': 'm'})
 
     def test_get_aggregated_shape(self):
         """ Ensure that correct shape is retrieved in each of the four

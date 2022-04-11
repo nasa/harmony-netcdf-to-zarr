@@ -127,19 +127,21 @@ class TestAdapter(TestCase):
         self.assertEqual(out['data/vertical/north'][0, 2, 0], 0)
         self.assertEqual(out['data/vertical/south'][0, 2, 0], 16)
         self.assertEqual(out['data/vertical/south'][0, 0, 2], 0)
-        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 16)  # scale_factor = 2
-        self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
         self.assertEqual(out['data/horizontal/west'][0, 0, 0], 16)
         self.assertEqual(out['data/horizontal/west'][0, 2, 2], 0)
+        # East variable has a scale factor; raw values should still be copied:
+        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 8)
+        self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
 
         # 'east' attributes scale_factor removed
         self.assertFalse(hasattr(out['data/horizontal/east'], 'scale_factor'))
 
-        # 'east' attributes present and scaled
-        self.assertEqual(out['data/horizontal/east'].attrs['valid_range'], [0.0, 50.0])
+        # 'east' attributes present, exactly matching input attributes:
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_range'], [0.0, 25.0])
         self.assertEqual(out['data/horizontal/east'].attrs['valid_min'], 0.0)
-        self.assertEqual(out['data/horizontal/east'].attrs['valid_max'], 50.0)
-        self.assertEqual(out['data/horizontal/east'].attrs['_FillValue'], 254.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_max'], 25.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['_FillValue'], 127.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['scale_factor'], 2.0)
         self.assertFalse(hasattr(out['data/horizontal/east'], 'missing_value'))
 
         # 2D Nested Float Arrays
@@ -300,23 +302,22 @@ class TestAdapter(TestCase):
         self.assertEqual(out['data/vertical/north'][0, 2, 0], 0)
         self.assertEqual(out['data/vertical/south'][0, 2, 0], 16)
         self.assertEqual(out['data/vertical/south'][0, 0, 2], 0)
-        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 16)  # scale_factor = 2
-        self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
         self.assertEqual(out['data/horizontal/west'][0, 0, 0], 16)
         self.assertEqual(out['data/horizontal/west'][0, 2, 2], 0)
         self.assertEqual(out['data/vertical/north'][1, 0, 2], 17)
         self.assertEqual(out['data/vertical/north'][1, 2, 0], 1)
         self.assertEqual(out['data/vertical/south'][1, 2, 0], 17)
         self.assertEqual(out['data/vertical/south'][1, 0, 2], 1)
+        # East variable has scale factor; raw values should still be copied:
+        self.assertEqual(out['data/horizontal/east'][0, 2, 2], 8)
+        self.assertEqual(out['data/horizontal/east'][0, 0, 0], 0)
 
-        # 'east' attributes scale_factor removed
-        self.assertFalse(hasattr(out['data/horizontal/east'], 'scale_factor'))
-
-        # 'east' attributes present and scaled
-        self.assertEqual(out['data/horizontal/east'].attrs['valid_range'], [0.0, 50.0])
+        # 'east' attributes present, exactly matching input attributes:
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_range'], [0.0, 25.0])
         self.assertEqual(out['data/horizontal/east'].attrs['valid_min'], 0.0)
-        self.assertEqual(out['data/horizontal/east'].attrs['valid_max'], 50.0)
-        self.assertEqual(out['data/horizontal/east'].attrs['_FillValue'], 254.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['valid_max'], 25.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['_FillValue'], 127.0)
+        self.assertEqual(out['data/horizontal/east'].attrs['scale_factor'], 2.0)
         self.assertFalse(hasattr(out['data/horizontal/east'], 'missing_value'))
 
         # 2D Nested Float Arrays
