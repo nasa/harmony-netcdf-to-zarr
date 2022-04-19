@@ -154,6 +154,7 @@ class DimensionsMapping:
         self.input_paths = input_paths
         self.input_dimensions = {}
         self.output_dimensions = {}
+        self.output_bounds = {}
         self._map_input_dimensions()
         self._aggregate_output_dimensions()
 
@@ -224,6 +225,7 @@ class DimensionsMapping:
                 self.output_dimensions[dimension_name] = self._get_temporal_output_dimension(
                     dimension_inputs, dimension_name
                 )
+                self._map_output_bounds(self.output_dimensions[dimension_name])
             elif any(are_inputs_temporal):
                 raise MixedDimensionTypeError(dimension_name)
             else:
@@ -248,6 +250,7 @@ class DimensionsMapping:
                 self.output_dimensions[dimension_name] = self._get_output_dimension(
                     dimension_name, all_input_values, output_dimension_units
                 )
+                self._map_output_bounds(self.output_dimensions[dimension_name])
                 """
 
     def _get_temporal_output_dimension(self,
@@ -378,6 +381,15 @@ class DimensionsMapping:
             bounds_values = None
 
         return bounds_path, bounds_values
+
+    def _map_output_bounds(self, dimension: DimensionInformation):
+        """ Create a mapping from the fully resolved bounds variable path to
+            the fully resolved dimension variable path. This allows for easier
+            information retrieval when only the bounds path is known.
+
+        """
+        if dimension.bounds_path is not None:
+            self.output_bounds[dimension.bounds_path] = dimension.dimension_path
 
 
 def get_nc_attribute(

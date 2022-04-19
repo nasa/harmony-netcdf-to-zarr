@@ -1,6 +1,5 @@
 """ Unit tests for the `harmony_netcdf_to_zarr.adapter` module. """
 from datetime import datetime
-from unittest.mock import patch
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 

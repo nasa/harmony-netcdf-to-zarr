@@ -1,14 +1,11 @@
 """ Unit tests for the `harmony_netcdf_to_zarr.download_utilities` module. """
 from logging import getLogger
-from multiprocessing import Queue
-from multiprocessing.managers import Namespace
 from os import remove as remove_file
 from os.path import dirname, exists as file_exists, join as join_path
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-from unittest.mock import patch
 
 from harmony.util import config
 

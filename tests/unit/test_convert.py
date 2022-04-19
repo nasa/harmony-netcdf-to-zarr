@@ -5,11 +5,12 @@ from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from netCDF4 import Dataset
 from numpy.testing import assert_array_equal
-from zarr import DirectoryStore, group as create_zarr_group
+from zarr import (DirectoryStore, group as create_zarr_group,
+                  ProcessSynchronizer)
 import numpy as np
 
 from harmony_netcdf_to_zarr.convert import (__copy_attrs as copy_attrs,
@@ -117,6 +118,18 @@ class TestConvert(TestCase):
                                  {'add_offset': 0.0, 'scale_factor': 1.0,
                                   'units': 'm'})
 
+        with self.subTest('kwargs take priority over NetCDF-4 metadata'):
+            zarr_store = DirectoryStore(path_join(self.temp_dir, 'test_kwarg.zarr'))
+            zarr_group = create_zarr_group(zarr_store)
+
+            with Dataset('test.nc4', diskless=True, mode='w') as dataset:
+                dataset.setncattr('units', 'NetCDF-4 units')
+
+                copy_attrs(dataset, zarr_group, units='kwarg units')
+
+            self.assertDictEqual(zarr_group.attrs.asdict(),
+                                 {'units': 'kwarg units'})
+
     def test_get_aggregated_shape(self):
         """ Ensure that correct shape is retrieved in each of the four
             possible situations:
@@ -208,12 +221,13 @@ class TestConvert(TestCase):
         dim_mapping = DimensionsMapping([test_granule])
         aggregated_dims = ['/Grid/time', '/Grid/time_bnds']
         zarr_store = DirectoryStore(path_join(self.temp_dir, 'test.zarr'))
-        zarr_group = create_zarr_group(zarr_store)
-        zarr_synchronizer = Mock()
+        zarr_synchronizer = ProcessSynchronizer(path_join(self.temp_dir,
+                                                          'test.sync'))
+        zarr_group = create_zarr_group(zarr_store,
+                                       synchronizer=zarr_synchronizer)
 
         with Dataset(test_granule, 'r') as dataset:
-            copy_group(dataset, zarr_group, zarr_synchronizer, dim_mapping,
-                       aggregated_dims)
+            copy_group(dataset, zarr_group, dim_mapping, aggregated_dims)
             all_input_variables = set(dataset['/Grid'].variables.keys())
 
         # There are 3 dimension variables, 3 bounds variables and 10 other
@@ -222,7 +236,7 @@ class TestConvert(TestCase):
 
         # The fourth argument in the call to `__copy_variable` is the variable
         # name.
-        all_output_variables = {call[0][3]
+        all_output_variables = {call[0][2]
                                 for call
                                 in mock_copy_variable.call_args_list}
 

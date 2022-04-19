@@ -159,9 +159,9 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             with Dataset(input_granule, 'r') as input_dataset:
                 input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
-                             create_zarr_group(zarr_store, overwrite=False),
-                             zarr_synchronizer, dim_mapping,
-                             aggregated_dimensions)
+                             create_zarr_group(zarr_store, overwrite=False,
+                                               synchronizer=zarr_synchronizer),
+                             dim_mapping, aggregated_dimensions)
         except Exception as exception:
             # If there was an issue, save a string message from the raised
             # exception. This will cause the other processes to stop processing
@@ -184,32 +184,36 @@ def __copy_aggregated_dimensions(dim_mapping: DimensionsMapping,
         into the Zarr store.
 
     """
-    root_group = create_zarr_group(zarr_store, overwrite=True)
+    if isinstance(zarr_store, DirectoryStore):
+        zarr_root = zarr_store.dir_path()
+    else:
+        zarr_root = zarr_store.root
+
+    zarr_synchronizer = ProcessSynchronizer(f'{splitext(zarr_root)[0]}.sync')
+    root_group = create_zarr_group(zarr_store, overwrite=True,
+                                   synchronizer=zarr_synchronizer)
     aggregated_dimensions = set()
 
     for output_dimension in dim_mapping.output_dimensions.values():
         if output_dimension.is_temporal():
             __copy_aggregated_dimension(output_dimension.dimension_path,
-                                        output_dimension.values,
-                                        output_dimension.units, root_group)
+                                        output_dimension.values, root_group)
             aggregated_dimensions.add(output_dimension.dimension_path)
 
             if output_dimension.bounds_path is not None:
                 __copy_aggregated_dimension(output_dimension.bounds_path,
                                             output_dimension.bounds_values,
-                                            output_dimension.units, root_group)
+                                            root_group)
                 aggregated_dimensions.add(output_dimension.bounds_path)
 
     return aggregated_dimensions
 
 
 def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
-                                variable_units: str, root_group: ZarrGroup):
+                                root_group: ZarrGroup):
     """ This function will copy variable data, but not metadata, from the
-        supplied variable array. The units metadata are added, as these are
-        contained in the `DimensionInformation` class. Other metadata attributes
-        will be later added when all variables are iterated through within each
-        granule.
+        supplied variable array. Metadata attributes will be later added when
+        all variables are iterated through within each granule.
 
         Technically, this function is used for both aggregated dimensions and
         any associated bounds variables.
@@ -224,21 +228,22 @@ def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
 
     new_chunks = compute_chunksize(variable_data.shape, variable_data.dtype)
 
-    zarr_variable = parent_group.require_dataset(variable_basename,
-                                                 data=variable_data,
-                                                 shape=variable_data.size,
-                                                 chunks=tuple(new_chunks),
-                                                 dtype=variable_data.dtype)
-
-    zarr_variable.attrs.put({'units': variable_units})
+    parent_group.require_dataset(variable_basename,
+                                 data=variable_data,
+                                 shape=variable_data.size,
+                                 chunks=tuple(new_chunks),
+                                 dtype=variable_data.dtype)
 
 
 def __copy_group(netcdf_group: NetCDFGroup, zarr_group: ZarrGroup,
-                 zarr_synchronizer: ProcessSynchronizer,
                  dim_mapping: DimensionsMapping,
                  aggregated_dimensions: Set[str] = set()):
     """ Recursively copies the source netCDF4 group into the destination Zarr
-        group, along with all sub-groups, variables, and attributes
+        group, along with all sub-groups, variables, and attributes. The input
+        `zarr_group` has an associated `ProcessSynchronizer` object, which
+        allows for writing data to the same object from within parallel
+        processes. This object is automatically propagated to child groups and
+        datasets via the `require_group` and `require_dataset` class methods.
 
         Parameters
         ----------
@@ -246,9 +251,6 @@ def __copy_group(netcdf_group: NetCDFGroup, zarr_group: ZarrGroup,
             the NetCDF group to copy from
         zarr_group : zarr.hierarchy.Group
             the existing Zarr group to copy into
-        zarr_syncronizer: zarr.ProcessSynchronizer
-            ensures that multiple processes can safely access the same Zarr
-            store.
         dim_mapping: mosaic_utilities.DimensionsMapping
             contains aggregated dimension values and units metadata
         aggregated_dimensions: Set[str]
@@ -261,19 +263,21 @@ def __copy_group(netcdf_group: NetCDFGroup, zarr_group: ZarrGroup,
     for child_group_name, child_netcdf_group in netcdf_group.groups.items():
         __copy_group(child_netcdf_group,
                      zarr_group.require_group(child_group_name.split('/').pop()),
-                     zarr_synchronizer, dim_mapping, aggregated_dimensions)
+                     dim_mapping, aggregated_dimensions)
 
     for variable_name, netcdf_variable in netcdf_group.variables.items():
-        __copy_variable(netcdf_variable, zarr_group, zarr_synchronizer,
-                        variable_name, dim_mapping, aggregated_dimensions)
+        __copy_variable(netcdf_variable, zarr_group, variable_name,
+                        dim_mapping, aggregated_dimensions)
 
 
 def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
-                    zarr_synchronizer: ProcessSynchronizer, variable_name: str,
-                    dim_mapping: DimensionsMapping,
+                    variable_name: str, dim_mapping: DimensionsMapping,
                     aggregated_dimensions: Set[str] = set()):
     """ Copies the variable from the NetCDF variable into the Zarr group,
-        giving it the provided variable_name.
+        giving it the provided variable_name. Note, the `Group.require_dataset`
+        class method instantiates a dataset that uses the `ProcessSynchronizer`
+        associated with the group, so that the dataset can be safely written to
+        from within multiple processes.
 
         Parameters
         ----------
@@ -281,8 +285,6 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
             the source variable to copy
         zarr_group : zarr.hierarchy.Group
             the group into which to copy the variable
-        zarr_synchronizer: zarr.ProcessSynchronizer
-            ensures safe writing to the same Zarr store from multiple processes
         variable_name : string
             the variable_name of the variable in the destination group
         dim_mapping: DimensionsMapping
@@ -321,8 +323,7 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
                                                    shape=aggregated_shape,
                                                    chunks=tuple(new_chunks),
                                                    dtype=dtype,
-                                                   fill_value=fill_value,
-                                                   synchronizer=zarr_synchronizer)
+                                                   fill_value=fill_value)
 
         resolved_variable_name = resolve_reference_path(netcdf_variable,
                                                         variable_name)
@@ -332,8 +333,24 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
                                 resolved_variable_name, dim_mapping)
 
     # xarray requires the _ARRAY_DIMENSIONS metadata to know how to label axes
-    __copy_attrs(netcdf_variable, zarr_variable,
-                 _ARRAY_DIMENSIONS=list(netcdf_variable.dimensions))
+    kwarg_attributes = {'_ARRAY_DIMENSIONS': list(netcdf_variable.dimensions)}
+
+    # If the variable has been aggregated, the units must be used from the
+    # aggregated dimension (or bounds) variable.
+    if resolved_variable_name in aggregated_dimensions:
+        if resolved_variable_name in dim_mapping.output_dimensions:
+            aggregated_units = (
+                dim_mapping.output_dimensions[resolved_variable_name].units
+            )
+        elif resolved_variable_name in dim_mapping.output_bounds:
+            dimension_path = dim_mapping.output_bounds[resolved_variable_name]
+            aggregated_units = (
+                dim_mapping.output_dimensions[dimension_path].units
+            )
+
+        kwarg_attributes['units'] = aggregated_units
+
+    __copy_attrs(netcdf_variable, zarr_variable, **kwarg_attributes)
 
 
 def __get_aggregated_shape(netcdf_variable: NetCDFVariable,

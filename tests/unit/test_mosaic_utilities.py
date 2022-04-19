@@ -441,8 +441,6 @@ class TestMosaicUtilities(TestCase):
         lat_data_two = np.array([10, 15])
         lon_data_one = np.array([1, 2, 3])
         lon_data_two = np.array([6, 7])
-        expected_output_lat_data = np.array([-10, -5, 0, 5, 10, 15])
-        expected_output_lon_data = np.array([1, 2, 3, 4, 5, 6, 7])
 
         dataset_one = self.generate_netcdf_input(
             'spatial_one.nc4', lat_data_one, lon_data_one,
@@ -464,6 +462,9 @@ class TestMosaicUtilities(TestCase):
         self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
                             {'/time'})
         """
+        expected_output_lat_data = np.array([-10, -5, 0, 5, 10, 15])
+        expected_output_lon_data = np.array([1, 2, 3, 4, 5, 6, 7])
+
         self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
                             {'/time', '/latitude', '/longitude'})
 
@@ -555,6 +556,7 @@ class TestMosaicUtilities(TestCase):
                                                [3.5, 4.5],
                                                [4.5, 5.5]])
 
+            self.assertDictEqual(mapping.output_bounds, {'/dim_bnds': '/dim'})
             assert_array_equal(mapping.output_dimensions['/dim'].values,
                                np.array([0, 1, 2, 3, 4, 5]))
             self.assertEqual(mapping.output_dimensions['/dim'].bounds_path,
