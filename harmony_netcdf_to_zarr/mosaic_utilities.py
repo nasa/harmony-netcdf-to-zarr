@@ -154,6 +154,7 @@ class DimensionsMapping:
         self.input_paths = input_paths
         self.input_dimensions = {}
         self.output_dimensions = {}
+        self.output_bounds = {}
         self._map_input_dimensions()
         self._aggregate_output_dimensions()
 
@@ -224,31 +225,31 @@ class DimensionsMapping:
                 self.output_dimensions[dimension_name] = self._get_temporal_output_dimension(
                     dimension_inputs, dimension_name
                 )
+                self._map_output_bounds(self.output_dimensions[dimension_name])
             elif any(are_inputs_temporal):
                 raise MixedDimensionTypeError(dimension_name)
             else:
                 # Temporarily comment out non-temporal aggregation as there are
                 # issues with Swath Projector output not always being on a
                 # perfectly spaced grid
-                pass
-                """
                 # All input granule dimensions with this path are non-temporal
                 # That means that the raw values are likely all the same units.
-                all_input_values = np.unique(
-                    np.concatenate([dimension_input.get_values()
-                                    for dimension_input
-                                    in dimension_inputs.values()])
-                )
+                # all_input_values = np.unique(
+                #     np.concatenate([dimension_input.get_values()
+                #                     for dimension_input
+                #                     in dimension_inputs.values()])
+                # )
 
                 # Because it is assumed the units are the same for all inputs,
                 # use the `units` metadata from the first input granule as
                 # the value for the aggregated output dimension.
-                output_dimension_units = next(iter(dimension_inputs.values())).units
+                # output_dimension_units = next(iter(dimension_inputs.values())).units
 
-                self.output_dimensions[dimension_name] = self._get_output_dimension(
-                    dimension_name, all_input_values, output_dimension_units
-                )
-                """
+                # self.output_dimensions[dimension_name] = self._get_output_dimension(
+                #     dimension_name, all_input_values, output_dimension_units
+                # )
+                # self._map_output_bounds(self.output_dimensions[dimension_name])
+                pass
 
     def _get_temporal_output_dimension(self,
                                        dimension_inputs: Dict[str, DimensionInformation],
@@ -378,6 +379,15 @@ class DimensionsMapping:
             bounds_values = None
 
         return bounds_path, bounds_values
+
+    def _map_output_bounds(self, dimension: DimensionInformation):
+        """ Create a mapping from the fully resolved bounds variable path to
+            the fully resolved dimension variable path. This allows for easier
+            information retrieval when only the bounds path is known.
+
+        """
+        if dimension.bounds_path is not None:
+            self.output_bounds[dimension.bounds_path] = dimension.dimension_path
 
 
 def get_nc_attribute(
