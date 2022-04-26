@@ -234,7 +234,7 @@ class TestConvert(TestCase):
         # gridded variables.
         self.assertEqual(mock_copy_variable.call_count, 16)
 
-        # The fourth argument in the call to `__copy_variable` is the variable
+        # The third argument in the call to `__copy_variable` is the variable
         # name.
         all_output_variables = {call[0][2]
                                 for call
