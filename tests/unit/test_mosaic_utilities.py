@@ -459,35 +459,33 @@ class TestMosaicUtilities(TestCase):
         # Note: aggregation of non-temporal dimensions has been disabled
         # as the Swath Projector can have values with slight rounding
         # errors in their output grid dimensions.
-        self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
-                            {'/time'})
-        """
-        expected_output_lat_data = np.array([-10, -5, 0, 5, 10, 15])
-        expected_output_lon_data = np.array([1, 2, 3, 4, 5, 6, 7])
+        # self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
+        #                     {'/time'})
+        # expected_output_lat_data = np.array([-10, -5, 0, 5, 10, 15])
+        # expected_output_lon_data = np.array([1, 2, 3, 4, 5, 6, 7])
 
-        self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
-                            {'/time', '/latitude', '/longitude'})
+        # self.assertSetEqual(set(spatial_mapping.output_dimensions.keys()),
+        #                     {'/time', '/latitude', '/longitude'})
 
         # Check the output latitude has correct values and units.
-        self.assertEqual(
-            spatial_mapping.output_dimensions['/latitude'].units,
-            'degrees_north'
-        )
-        self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].epoch)
-        self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].time_unit)
-        assert_array_equal(spatial_mapping.output_dimensions['/latitude'].values,
-                           expected_output_lat_data)
+        # self.assertEqual(
+        #     spatial_mapping.output_dimensions['/latitude'].units,
+        #     'degrees_north'
+        # )
+        # self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].epoch)
+        # self.assertIsNone(spatial_mapping.output_dimensions['/latitude'].time_unit)
+        # assert_array_equal(spatial_mapping.output_dimensions['/latitude'].values,
+        #                    expected_output_lat_data)
 
         # Check the output longitude has correct values and units.
-        self.assertEqual(
-            spatial_mapping.output_dimensions['/longitude'].units,
-            'degrees_east'
-        )
-        self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].epoch)
-        self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].time_unit)
-        assert_array_equal(spatial_mapping.output_dimensions['/longitude'].values,
-                           expected_output_lon_data)
-        """
+        # self.assertEqual(
+        #     spatial_mapping.output_dimensions['/longitude'].units,
+        #     'degrees_east'
+        # )
+        # self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].epoch)
+        # self.assertIsNone(spatial_mapping.output_dimensions['/longitude'].time_unit)
+        # assert_array_equal(spatial_mapping.output_dimensions['/longitude'].values,
+        #                    expected_output_lon_data)
 
         # Check the output time has correct values and units.
         self.assertEqual(spatial_mapping.output_dimensions['/time'].units,

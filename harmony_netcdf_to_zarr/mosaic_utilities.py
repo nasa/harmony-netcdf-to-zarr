@@ -232,26 +232,24 @@ class DimensionsMapping:
                 # Temporarily comment out non-temporal aggregation as there are
                 # issues with Swath Projector output not always being on a
                 # perfectly spaced grid
-                pass
-                """
                 # All input granule dimensions with this path are non-temporal
                 # That means that the raw values are likely all the same units.
-                all_input_values = np.unique(
-                    np.concatenate([dimension_input.get_values()
-                                    for dimension_input
-                                    in dimension_inputs.values()])
-                )
+                # all_input_values = np.unique(
+                #     np.concatenate([dimension_input.get_values()
+                #                     for dimension_input
+                #                     in dimension_inputs.values()])
+                # )
 
                 # Because it is assumed the units are the same for all inputs,
                 # use the `units` metadata from the first input granule as
                 # the value for the aggregated output dimension.
-                output_dimension_units = next(iter(dimension_inputs.values())).units
+                # output_dimension_units = next(iter(dimension_inputs.values())).units
 
-                self.output_dimensions[dimension_name] = self._get_output_dimension(
-                    dimension_name, all_input_values, output_dimension_units
-                )
-                self._map_output_bounds(self.output_dimensions[dimension_name])
-                """
+                # self.output_dimensions[dimension_name] = self._get_output_dimension(
+                #     dimension_name, all_input_values, output_dimension_units
+                # )
+                # self._map_output_bounds(self.output_dimensions[dimension_name])
+                pass
 
     def _get_temporal_output_dimension(self,
                                        dimension_inputs: Dict[str, DimensionInformation],
