@@ -295,6 +295,8 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
             the input source data.
 
     """
+    resolved_variable_name = resolve_reference_path(netcdf_variable,
+                                                    variable_name)
     # create zarr group/dataset
     chunks = netcdf_variable.chunking()
     if chunks == 'contiguous' or chunks is None:
@@ -325,8 +327,6 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
                                                    dtype=dtype,
                                                    fill_value=fill_value)
 
-        resolved_variable_name = resolve_reference_path(netcdf_variable,
-                                                        variable_name)
         if resolved_variable_name not in aggregated_dimensions:
             # For a non-aggregated dimension, insert input granule data
             __insert_data_slice(netcdf_variable, zarr_variable,
