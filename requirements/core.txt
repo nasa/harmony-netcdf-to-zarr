@@ -1,5 +1,5 @@
 boto3 ~= 1.14
-git+https://github.com/nasa/harmony-service-lib-py@main#egg=harmony-service-lib
+harmony-service-lib ~= 1.0.16
 netCDF4 ~= 1.5
 numpy ~= 1.21.0
 python-dateutil ~= 2.8.2

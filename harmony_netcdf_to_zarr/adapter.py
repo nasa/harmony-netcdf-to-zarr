@@ -85,7 +85,7 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
         """
         workdir = mkdtemp()
         try:
-            items = list(self.catalog.get_items())
+            items = list(self.get_all_catalog_items(self.catalog))
             netcdf_urls = get_netcdf_urls(items)
 
             local_file_paths = download_granules(netcdf_urls, workdir,

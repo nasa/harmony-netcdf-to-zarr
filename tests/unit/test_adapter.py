@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from harmony.message import Message
 from harmony.util import bbox_to_geometry, config
-from pystac import Asset, Catalog, Item
+from pystac import Asset, Catalog, Item, Link
 from s3fs import S3FileSystem
 
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter, ZarrException
@@ -74,7 +74,8 @@ class TestNetCDFToZarrAdapter(TestCase):
 
     @patch('harmony_netcdf_to_zarr.adapter.make_localstack_s3fs')
     @patch.object(NetCDFToZarrAdapter, 'process_items_many_to_one')
-    def test_invoke_multiple_inputs(self, mock_process_items,
+    @patch('harmony.adapter.read_file')
+    def test_invoke_multiple_inputs(self, test_patch, mock_process_items,
                                     mock_make_localstack):
         """ Ensure the invoke method works when multiple input granules are
             specified via a STAC catalog and the Harmony message requests the
@@ -85,7 +86,10 @@ class TestNetCDFToZarrAdapter(TestCase):
         mock_process_items.return_value = mock_output
 
         granule_url = 'https://example.com/amazing_file.nc4'
-        stac_catalog = Catalog('single_input', 'description of test catalog')
+        stac_catalog0 = Catalog('multiple_input', 'description of test catalog 0')
+        stac_catalog1 = Catalog('multiple_input', 'description of test catalog 1')
+        stac_catalog0.add_link(Link('next', 'catalog1.json'))
+        stac_catalog1.add_link(Link('prev', 'catalog0.json'))
         stac_item_one = Item('id1', self.bbox_geometry, self.bbox,
                              self.granule_datetime, {})
         stac_item_two = Item('id2', self.bbox_geometry, self.bbox,
@@ -95,14 +99,16 @@ class TestNetCDFToZarrAdapter(TestCase):
                 'data', Asset(granule_url, roles=['data'],
                               media_type='application/x-netcdf4')
             )
-            stac_catalog.add_item(stac_item)
+        stac_catalog0.add_item(stac_item_one)
+        stac_catalog1.add_item(stac_item_two)
+        test_patch.return_value = stac_catalog1
 
         message_content = self.base_message_content.copy()
         message_content['format'] = {'mime': 'application/x-zarr'}
         harmony_message = Message(message_content)
 
         harmony_adapter = NetCDFToZarrAdapter(harmony_message,
-                                              catalog=stac_catalog,
+                                              catalog=stac_catalog0,
                                               config=self.harmony_config)
 
         output_message, output_catalog = harmony_adapter.invoke()
