@@ -1,5 +1,5 @@
 boto3 ~= 1.14
-harmony-service-lib ~= 1.0.16
+harmony-service-lib ~= 1.0.20
 netCDF4 ~= 1.5
 numpy ~= 1.21.0
 python-dateutil ~= 2.8.2
