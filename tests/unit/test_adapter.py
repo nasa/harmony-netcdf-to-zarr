@@ -192,6 +192,7 @@ class TestNetCDFToZarrAdapter(TestCase):
 
         """
         message_content = self.base_message_content.copy()
+        message_content['format'] = {'mime': 'application/x-zarr'}
         harmony_message = Message(message_content)
         harmony_adapter = NetCDFToZarrAdapter(harmony_message,
                                               config=self.harmony_config)
@@ -201,7 +202,7 @@ class TestNetCDFToZarrAdapter(TestCase):
 
         self.assertEqual(
             context_manager.exception.message,
-            'Request failed due to an incorrect service workflow'
+            'Invoking NetCDF-to-Zarr without STAC catalog is not supported.'
         )
 
     @patch('harmony_netcdf_to_zarr.adapter.get_output_catalog')
