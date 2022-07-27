@@ -71,6 +71,6 @@ class TestDownloadUtilities(TestCase):
                               self.access_token, self.harmony_config,
                               self.logger)
 
-            self.assertTrue(str(context_manager.exception).startswith(
-                'Unable to download a url of unknown type'
-            ))
+        self.assertTrue(str(context_manager.exception).startswith(
+            'Download failed: Unable to download a url of unknown type'
+        ))

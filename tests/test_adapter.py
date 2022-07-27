@@ -364,10 +364,10 @@ class TestAdapter(TestCase):
                   stac_catalog, '--harmony-metadata-dir', self.metadata_dir],
                  config=self.config)
 
-            self.assertTrue(
-                str(context_manager.exception).startswith(
-                    'Could not create Zarr output:'
-                )
+        self.assertTrue(
+            context_manager.exception.message.startswith(
+                'Could not create Zarr output:'
             )
+        )
 
         os.remove(filename)

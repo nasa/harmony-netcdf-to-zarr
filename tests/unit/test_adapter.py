@@ -146,10 +146,11 @@ class TestNetCDFToZarrAdapter(TestCase):
 
             with self.assertRaises(ZarrException) as context_manager:
                 harmony_adapter.invoke()
-                self.assertEqual(
-                    str(context_manager.exception),
-                    'Request failed due to an incorrect service workflow'
-                )
+
+            self.assertEqual(
+                context_manager.exception.message,
+                'Request failed due to an incorrect service workflow'
+            )
 
         with self.subTest('No mime attribute in message.format'):
             message_content = self.base_message_content.copy()
@@ -161,10 +162,11 @@ class TestNetCDFToZarrAdapter(TestCase):
 
             with self.assertRaises(ZarrException) as context_manager:
                 harmony_adapter.invoke()
-                self.assertEqual(
-                    str(context_manager.exception),
-                    'Request failed due to an incorrect service workflow'
-                )
+
+            self.assertEqual(
+                context_manager.exception.message,
+                'Request failed due to an incorrect service workflow'
+            )
 
         with self.subTest('No format attribute in message'):
             message_content = self.base_message_content.copy()
@@ -175,10 +177,11 @@ class TestNetCDFToZarrAdapter(TestCase):
 
             with self.assertRaises(ZarrException) as context_manager:
                 harmony_adapter.invoke()
-                self.assertEqual(
-                    str(context_manager.exception),
-                    'Request failed due to an incorrect service workflow'
-                )
+
+            self.assertEqual(
+                context_manager.exception.message,
+                'Request failed due to an incorrect service workflow'
+            )
 
     @patch('harmony_netcdf_to_zarr.adapter.make_localstack_s3fs')
     @patch.object(NetCDFToZarrAdapter, 'process_items_many_to_one')
@@ -189,16 +192,18 @@ class TestNetCDFToZarrAdapter(TestCase):
 
         """
         message_content = self.base_message_content.copy()
+        message_content['format'] = {'mime': 'application/x-zarr'}
         harmony_message = Message(message_content)
         harmony_adapter = NetCDFToZarrAdapter(harmony_message,
                                               config=self.harmony_config)
 
         with self.assertRaises(ZarrException) as context_manager:
             harmony_adapter.invoke()
-            self.assertEqual(
-                str(context_manager.exception),
-                'Invoking NetCDF-to-Zarr without STAC catalog is not supported.'
-            )
+
+        self.assertEqual(
+            context_manager.exception.message,
+            'Invoking NetCDF-to-Zarr without STAC catalog is not supported.'
+        )
 
     @patch('harmony_netcdf_to_zarr.adapter.get_output_catalog')
     @patch('harmony_netcdf_to_zarr.adapter.netcdf_to_zarr')
