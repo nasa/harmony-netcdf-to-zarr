@@ -1,5 +1,5 @@
 # Debian-based Python.  Builds _significantly_ faster than alpine due to presence of pre-built binaries for most libs
-FROM python:3.7.4-slim
+FROM python:3.9.14-slim-bullseye
 
 WORKDIR /opt/harmony-netcdf-to-zarr
 
