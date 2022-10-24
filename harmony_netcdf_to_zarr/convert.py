@@ -317,7 +317,7 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
         # and as the shape of the output Zarr variable.
         aggregated_shape = __get_aggregated_shape(netcdf_variable, dim_mapping,
                                                   aggregated_dimensions)
-        new_chunks = compute_chunksize(aggregated_shape, dtype)
+        new_chunks = compute_chunksize(netcdf_variable.shape, dtype)
 
         fill_value = getattr(netcdf_variable, '_FillValue', 0)
 
