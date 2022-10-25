@@ -5,7 +5,6 @@ from os import cpu_count, environ
 from os.path import splitext
 from queue import Empty as QueueEmpty
 from re import findall
-import sys
 from time import time
 from typing import Any, List, Set, Tuple, Union
 
