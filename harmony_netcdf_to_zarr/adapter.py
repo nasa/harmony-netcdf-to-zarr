@@ -105,7 +105,7 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
             zarr_store = self.s3.get_mapper(root=zarr_root, check=False,
                                             create=True)
 
-            mosaic_to_zarr(local_file_paths, zarr_store)
+            mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
             return get_output_catalog(self.catalog, zarr_root)
         except Exception as service_exception:

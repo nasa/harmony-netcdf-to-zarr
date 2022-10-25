@@ -1,3 +1,4 @@
+from logging import Logger
 from multiprocessing import Manager, Process, Queue
 from multiprocessing.managers import Namespace
 from os import cpu_count, environ
@@ -18,10 +19,6 @@ from zarr.convenience import consolidate_metadata
 import numpy as np
 
 from .mosaic_utilities import DimensionsMapping, resolve_reference_path
-from .log_wrapper import get_logger
-logger = get_logger()
-
-
 
 # Types for function signatures
 Number = Union[np.integer, np.floating, int, float]
@@ -52,7 +49,7 @@ def make_s3fs() -> S3FileSystem:
 
 
 def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
-                   process_count: int = None):
+                   process_count: int = None, logger: Logger = None):
     """ Convert input NetCDF files to a Zarr store, preserving data, metadata
         and group hierarchy.
 
@@ -73,6 +70,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
             This MutableMapping object points at the S3 object that represents
             the root of the Zarr store, which is essentially a directory in
             the S3 bucket.
+        logger: a Logger for including profiling information
 
     """
     t1 = time()
@@ -104,6 +102,8 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
         for input_granule in input_granules:
             output_queue.put(input_granule)
 
+        # shared_namespace.variable_chunk_shapes = compute_chunk_shapes(input_granules[0])
+
         processes = [Process(target=_output_worker,
                              args=(output_queue, shared_namespace,
                                    aggregated_dimensions, input_granules))
@@ -123,7 +123,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
     consolidate_metadata(zarr_store)
     t2 = time()
     logger.info(f'ZarrStore filled in {(t2-t1):.4f}s, N_GRANULES: {len(input_granules)}, '
-                 f'N_PROCESSES:{process_count}, sec/gran: {(t2-t1)/len(input_granules):.4f}')
+                f'N_PROCESSES:{process_count}, sec/gran: {(t2-t1)/len(input_granules):.4f}')
 
     try:
         zarr_store.close()
@@ -583,7 +583,3 @@ def compute_chunksize(shape: Union[tuple, list],
     # return new chunks
     suggested_chunksize = type(shape)(suggested_chunksize.tolist())
     return suggested_chunksize
-
-
-if __name__ == '__main__':
-    mosaic_to_zarr(*sys.argv[1:])
