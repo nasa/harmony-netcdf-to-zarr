@@ -4,8 +4,9 @@ from os import cpu_count, environ
 from os.path import splitext
 from queue import Empty as QueueEmpty
 from re import findall
-from typing import Any, List, Set, Tuple, Union
 import sys
+from time import time
+from typing import Any, List, Set, Tuple, Union
 
 from fsspec.mapping import FSMap
 from netCDF4 import Dataset, Group as NetCDFGroup, Variable as NetCDFVariable
@@ -17,6 +18,9 @@ from zarr.convenience import consolidate_metadata
 import numpy as np
 
 from .mosaic_utilities import DimensionsMapping, resolve_reference_path
+from .log_wrapper import get_logger
+logger = get_logger()
+
 
 
 # Types for function signatures
@@ -71,6 +75,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
             the S3 bucket.
 
     """
+    t1 = time()
     if isinstance(zarr_store, str):
         zarr_store = DirectoryStore(zarr_store)
 
@@ -116,6 +121,9 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
                                f'{shared_namespace.exception}')
 
     consolidate_metadata(zarr_store)
+    t2 = time()
+    logger.info(f'ZarrStore filled in {(t2-t1):.4f}s, N_GRANULES: {len(input_granules)}, '
+                 f'N_PROCESSES:{process_count}, sec/gran: {(t2-t1)/len(input_granules):.4f}')
 
     try:
         zarr_store.close()
