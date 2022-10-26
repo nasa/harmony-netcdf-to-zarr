@@ -105,7 +105,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
 
         processes = [Process(target=_output_worker,
                              args=(output_queue, shared_namespace,
-                                   aggregated_dimensions, input_granules,
+                                   aggregated_dimensions, dim_mapping,
                                    variable_chunk_metadata))
                      for _ in range(process_count)]
 
@@ -132,7 +132,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
 
 
 def _output_worker(output_queue: Queue, shared_namespace: Namespace,
-                   aggregated_dimensions: Set[str], input_granules: List[str],
+                   aggregated_dimensions: Set[str], dim_mapping: DimensionsMapping,
                    variable_chunk_metadata: Dict = {}) -> None:
     """ This worker function is executed in a spawned process. It checks for
         items in the main queue, which correspond to local file paths for input
@@ -156,7 +156,6 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
     zarr_synchronizer = ProcessSynchronizer(
         f'{splitext(shared_namespace.zarr_root)[0]}.sync'
     )
-    dim_mapping = DimensionsMapping(input_granules)
 
     while not hasattr(shared_namespace, 'exception') and not output_queue.empty():
         try:
