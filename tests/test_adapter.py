@@ -98,7 +98,7 @@ class TestAdapter(TestCase):
             /
              ├── data
              │   ├── horizontal
-             │   │   ├── east (1, 3, 3) int64
+             │   │   ├── east (1, 3, 3) uint8
              │   │   └── west (1, 3, 3) uint8
              │   └── vertical
              │       ├── north (1, 3, 3) uint8
@@ -273,7 +273,7 @@ class TestAdapter(TestCase):
             /
              ├── data
              │   ├── horizontal
-             │   │   ├── east (2, 3, 3) int64
+             │   │   ├── east (2, 3, 3) uint8
              │   │   └── west (2, 3, 3) uint8
              │   └── vertical
              │       ├── north (2, 3, 3) uint8
