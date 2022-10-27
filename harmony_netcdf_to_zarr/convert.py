@@ -82,7 +82,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
     variable_chunk_metadata = granule_chunk_shapes(input_granules[0])
 
     aggregated_dimensions = __copy_aggregated_dimensions(dim_mapping,
-                                                         zarr_store)
+                                                         zarr_store, variable_chunk_metadata)
 
     if process_count is None:
         process_count = min(cpu_count(), len(input_granules))
@@ -180,7 +180,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
 
 
 def __copy_aggregated_dimensions(dim_mapping: DimensionsMapping,
-                                 zarr_store: ZarrStore) -> Set[str]:
+                                 zarr_store: ZarrStore,
+                                 variable_chunk_metadata: Dict) -> Set[str]:
     """ Iterate through all aggregated dimensions, and their associated bounds,
         and write these dimensions to the output Zarr store. A list of
         aggregated dimensions are retained, so that the data values are not
@@ -206,20 +207,23 @@ def __copy_aggregated_dimensions(dim_mapping: DimensionsMapping,
     for output_dimension in dim_mapping.output_dimensions.values():
         if output_dimension.is_temporal():
             __copy_aggregated_dimension(output_dimension.dimension_path,
-                                        output_dimension.values, root_group)
+                                        output_dimension.values, root_group,
+                                        variable_chunk_metadata)
             aggregated_dimensions.add(output_dimension.dimension_path)
 
             if output_dimension.bounds_path is not None:
                 __copy_aggregated_dimension(output_dimension.bounds_path,
                                             output_dimension.bounds_values,
-                                            root_group)
+                                            root_group,
+                                            variable_chunk_metadata)
                 aggregated_dimensions.add(output_dimension.bounds_path)
 
     return aggregated_dimensions
 
 
 def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
-                                root_group: ZarrGroup):
+                                root_group: ZarrGroup,
+                                variable_chunk_metadata: Dict) -> None:
     """ This function will copy variable data, but not metadata, from the
         supplied variable array. Metadata attributes will be later added when
         all variables are iterated through within each granule.
@@ -235,12 +239,10 @@ def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
     for nested_group in variable_path_pieces:
         parent_group = parent_group.require_group(nested_group)
 
-    new_chunks = compute_chunksize(variable_data.shape, variable_data.dtype)
-
     parent_group.require_dataset(variable_basename,
                                  data=variable_data,
                                  shape=variable_data.size,
-                                 chunks=tuple(new_chunks),
+                                 chunks=tuple(variable_chunk_metadata[variable_path]),
                                  dtype=variable_data.dtype)
 
 
