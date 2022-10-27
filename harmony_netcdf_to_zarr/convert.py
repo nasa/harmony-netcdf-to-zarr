@@ -608,6 +608,6 @@ def _chunk_shapes(group: Union[Dataset, NetCDFGroup], results: Dict = {}) -> Dic
         results[variable_path] = compute_chunksize(netcdf4_variable.shape, netcdf4_variable.dtype)
 
     for child_group in group.groups.values():
-        return _chunk_shapes(child_group, results)
+        results.update(_chunk_shapes(child_group, results))
 
     return results
