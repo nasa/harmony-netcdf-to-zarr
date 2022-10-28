@@ -1,11 +1,12 @@
+from logging import Logger
 from multiprocessing import Manager, Process, Queue
 from multiprocessing.managers import Namespace
 from os import cpu_count, environ
 from os.path import splitext
 from queue import Empty as QueueEmpty
 from re import findall
-from typing import Any, List, Set, Tuple, Union
-import sys
+from time import time
+from typing import Any, List, Set, Tuple, Union, Dict
 
 from fsspec.mapping import FSMap
 from netCDF4 import Dataset, Group as NetCDFGroup, Variable as NetCDFVariable
@@ -17,7 +18,6 @@ from zarr.convenience import consolidate_metadata
 import numpy as np
 
 from .mosaic_utilities import DimensionsMapping, resolve_reference_path
-
 
 # Types for function signatures
 Number = Union[np.integer, np.floating, int, float]
@@ -48,7 +48,7 @@ def make_s3fs() -> S3FileSystem:
 
 
 def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
-                   process_count: int = None):
+                   process_count: int = None, logger: Logger = None):
     """ Convert input NetCDF files to a Zarr store, preserving data, metadata
         and group hierarchy.
 
@@ -69,16 +69,20 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
             This MutableMapping object points at the S3 object that represents
             the root of the Zarr store, which is essentially a directory in
             the S3 bucket.
+        logger: a Logger to include performance information
 
     """
+    t1 = time()
     if isinstance(zarr_store, str):
         zarr_store = DirectoryStore(zarr_store)
 
     # Write dimension information from DimensionsMapping (including bounds)
     # Store list of aggregated dimensions/variables to avoid writing them again
     dim_mapping = DimensionsMapping(input_granules)
+    variable_chunk_metadata = granule_chunk_shapes(input_granules[0])
+
     aggregated_dimensions = __copy_aggregated_dimensions(dim_mapping,
-                                                         zarr_store)
+                                                         zarr_store, variable_chunk_metadata)
 
     if process_count is None:
         process_count = min(cpu_count(), len(input_granules))
@@ -101,7 +105,8 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
 
         processes = [Process(target=_output_worker,
                              args=(output_queue, shared_namespace,
-                                   aggregated_dimensions, input_granules))
+                                   aggregated_dimensions, dim_mapping,
+                                   variable_chunk_metadata))
                      for _ in range(process_count)]
 
         for output_process in processes:
@@ -116,6 +121,9 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
                                f'{shared_namespace.exception}')
 
     consolidate_metadata(zarr_store)
+    t2 = time()
+    logger.info(f'ZarrStore filled in {(t2-t1):.4f}s, N_GRANULES: {len(input_granules)}, '
+                f'N_PROCESSES:{process_count}, sec/gran: {(t2-t1)/len(input_granules):.4f}')
 
     try:
         zarr_store.close()
@@ -124,7 +132,8 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
 
 
 def _output_worker(output_queue: Queue, shared_namespace: Namespace,
-                   aggregated_dimensions: Set[str], input_granules: List[str]):
+                   aggregated_dimensions: Set[str], dim_mapping: DimensionsMapping,
+                   variable_chunk_metadata: Dict = {}) -> None:
     """ This worker function is executed in a spawned process. It checks for
         items in the main queue, which correspond to local file paths for input
         NetCDF-4 files. If there is at least one URL left for writing, then the
@@ -147,7 +156,6 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
     zarr_synchronizer = ProcessSynchronizer(
         f'{splitext(shared_namespace.zarr_root)[0]}.sync'
     )
-    dim_mapping = DimensionsMapping(input_granules)
 
     while not hasattr(shared_namespace, 'exception') and not output_queue.empty():
         try:
@@ -161,7 +169,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
                 __copy_group(input_dataset,
                              create_zarr_group(zarr_store, overwrite=False,
                                                synchronizer=zarr_synchronizer),
-                             dim_mapping, aggregated_dimensions)
+                             dim_mapping, aggregated_dimensions,
+                             variable_chunk_metadata)
         except Exception as exception:
             # If there was an issue, save a string message from the raised
             # exception. This will cause the other processes to stop processing
@@ -171,7 +180,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
 
 
 def __copy_aggregated_dimensions(dim_mapping: DimensionsMapping,
-                                 zarr_store: ZarrStore) -> Set[str]:
+                                 zarr_store: ZarrStore,
+                                 variable_chunk_metadata: Dict) -> Set[str]:
     """ Iterate through all aggregated dimensions, and their associated bounds,
         and write these dimensions to the output Zarr store. A list of
         aggregated dimensions are retained, so that the data values are not
@@ -197,20 +207,23 @@ def __copy_aggregated_dimensions(dim_mapping: DimensionsMapping,
     for output_dimension in dim_mapping.output_dimensions.values():
         if output_dimension.is_temporal():
             __copy_aggregated_dimension(output_dimension.dimension_path,
-                                        output_dimension.values, root_group)
+                                        output_dimension.values, root_group,
+                                        variable_chunk_metadata)
             aggregated_dimensions.add(output_dimension.dimension_path)
 
             if output_dimension.bounds_path is not None:
                 __copy_aggregated_dimension(output_dimension.bounds_path,
                                             output_dimension.bounds_values,
-                                            root_group)
+                                            root_group,
+                                            variable_chunk_metadata)
                 aggregated_dimensions.add(output_dimension.bounds_path)
 
     return aggregated_dimensions
 
 
 def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
-                                root_group: ZarrGroup):
+                                root_group: ZarrGroup,
+                                variable_chunk_metadata: Dict) -> None:
     """ This function will copy variable data, but not metadata, from the
         supplied variable array. Metadata attributes will be later added when
         all variables are iterated through within each granule.
@@ -226,18 +239,20 @@ def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
     for nested_group in variable_path_pieces:
         parent_group = parent_group.require_group(nested_group)
 
-    new_chunks = compute_chunksize(variable_data.shape, variable_data.dtype)
+    chunks = (variable_chunk_metadata.get(variable_path)
+              or compute_chunksize(variable_data.shape, variable_data.dtype))
 
     parent_group.require_dataset(variable_basename,
                                  data=variable_data,
                                  shape=variable_data.size,
-                                 chunks=tuple(new_chunks),
+                                 chunks=tuple(chunks),
                                  dtype=variable_data.dtype)
 
 
 def __copy_group(netcdf_group: NetCDFGroup, zarr_group: ZarrGroup,
                  dim_mapping: DimensionsMapping,
-                 aggregated_dimensions: Set[str] = set()):
+                 aggregated_dimensions: Set[str] = set(),
+                 variable_chunk_metadata: Dict = {}):
     """ Recursively copies the source netCDF4 group into the destination Zarr
         group, along with all sub-groups, variables, and attributes. The input
         `zarr_group` has an associated `ProcessSynchronizer` object, which
@@ -256,6 +271,9 @@ def __copy_group(netcdf_group: NetCDFGroup, zarr_group: ZarrGroup,
         aggregated_dimensions: Set[str]
             a set of full string paths of aggregated dimensions. As of TRT-121
             these are only temporal dimensions (and associated bounds variables)
+        variable_chunk_metadata: Dict
+            A Dict of fully qualified variable names keys holding
+            the output chunksizes
 
     """
     __copy_attrs(netcdf_group, zarr_group)
@@ -263,16 +281,17 @@ def __copy_group(netcdf_group: NetCDFGroup, zarr_group: ZarrGroup,
     for child_group_name, child_netcdf_group in netcdf_group.groups.items():
         __copy_group(child_netcdf_group,
                      zarr_group.require_group(child_group_name.split('/').pop()),
-                     dim_mapping, aggregated_dimensions)
+                     dim_mapping, aggregated_dimensions, variable_chunk_metadata)
 
     for variable_name, netcdf_variable in netcdf_group.variables.items():
         __copy_variable(netcdf_variable, zarr_group, variable_name,
-                        dim_mapping, aggregated_dimensions)
+                        dim_mapping, aggregated_dimensions, variable_chunk_metadata)
 
 
 def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
                     variable_name: str, dim_mapping: DimensionsMapping,
-                    aggregated_dimensions: Set[str] = set()):
+                    aggregated_dimensions: Set[str] = set(),
+                    variable_chunk_metadata: Dict = {}) -> None:
     """ Copies the variable from the NetCDF variable into the Zarr group,
         giving it the provided variable_name. Note, the `Group.require_dataset`
         class method instantiates a dataset that uses the `ProcessSynchronizer`
@@ -293,6 +312,9 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
             a set of all dimension variable names that have been aggregated.
             This ensures that the aggregated data will not be overwritten by
             the input source data.
+        variable_chunk_metadata: Dict
+            A Dict of fully qualified variable names keys holding
+            the output chunksizes
 
     """
     resolved_variable_name = resolve_reference_path(netcdf_variable,
@@ -306,26 +328,23 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
         # Treat a 0-dimensional NetCDF variable as a zarr group
         zarr_variable = zarr_group.require_group(variable_name)
     else:
-        if hasattr(netcdf_variable, 'add_offset'):
-            dtype = netcdf_variable.add_offset.dtype
-        elif hasattr(netcdf_variable, 'scale_factor'):
-            dtype = netcdf_variable.scale_factor.dtype
-        else:
-            dtype = netcdf_variable.dtype
 
         # Derive the aggregated shape, used for both the chunk size calculation
         # and as the shape of the output Zarr variable.
         aggregated_shape = __get_aggregated_shape(netcdf_variable, dim_mapping,
                                                   aggregated_dimensions)
-        new_chunks = compute_chunksize(aggregated_shape, dtype)
 
         fill_value = getattr(netcdf_variable, '_FillValue', 0)
 
-        zarr_variable = zarr_group.require_dataset(variable_name,
-                                                   shape=aggregated_shape,
-                                                   chunks=tuple(new_chunks),
-                                                   dtype=dtype,
-                                                   fill_value=fill_value)
+        chunks = (variable_chunk_metadata.get(resolved_variable_name)
+                  or compute_chunksize(netcdf_variable.shape, netcdf_variable.dtype))
+
+        zarr_variable = zarr_group.require_dataset(
+            variable_name,
+            shape=aggregated_shape,
+            chunks=tuple(chunks),
+            dtype=netcdf_variable.dtype,
+            fill_value=fill_value)
 
         if resolved_variable_name not in aggregated_dimensions:
             # For a non-aggregated dimension, insert input granule data
@@ -577,5 +596,26 @@ def compute_chunksize(shape: Union[tuple, list],
     return suggested_chunksize
 
 
-if __name__ == '__main__':
-    mosaic_to_zarr(*sys.argv[1:])
+def granule_chunk_shapes(granule_filename: str) -> Dict:
+    """Compute chunk sizes for all variables in a granule file.
+
+    Traverse an input granule file, computing the chunksize for every found
+    variable, and return a dictionary of the resulting chunksizes stored by
+    their fully qualified variable name.
+
+    """
+    with Dataset(granule_filename) as dataset:
+        return _chunk_shapes(dataset)
+
+
+def _chunk_shapes(group: Union[Dataset, NetCDFGroup], results: Dict = {}) -> Dict:
+    """Recursively return chunk shapes for all variables from group."""
+    for netcdf4_variable in group.variables.values():
+        variable_path = '/'.join([group.path, netcdf4_variable.name])
+        variable_path = f'/{variable_path.lstrip("/")}'
+        results[variable_path] = compute_chunksize(netcdf4_variable.shape, netcdf4_variable.dtype)
+
+    for child_group in group.groups.values():
+        results.update(_chunk_shapes(child_group, results))
+
+    return results

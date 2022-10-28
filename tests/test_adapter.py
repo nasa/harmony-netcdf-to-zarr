@@ -10,10 +10,11 @@ import textwrap
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 from harmony.util import config as harmony_config
 from netCDF4 import Dataset
+from numpy import dtype
 from pystac import Catalog
 from zarr import DirectoryStore, open_consolidated
 
@@ -98,7 +99,7 @@ class TestAdapter(TestCase):
             /
              ├── data
              │   ├── horizontal
-             │   │   ├── east (1, 3, 3) int64
+             │   │   ├── east (1, 3, 3) uint8
              │   │   └── west (1, 3, 3) uint8
              │   └── vertical
              │       ├── north (1, 3, 3) uint8
@@ -203,12 +204,13 @@ class TestAdapter(TestCase):
         # -- Data Assertions --
         self.assertEqual(out['data/var'].chunks, (10000,))
 
+    @patch('harmony_netcdf_to_zarr.convert.compute_chunksize')
     @patch('harmony_netcdf_to_zarr.adapter.make_s3fs')
     @patch('harmony_netcdf_to_zarr.convert.make_s3fs')
     @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
-    def test_end_to_end_mosaic_conversion(self, mock_download, mock_make_s3fs,
-                                          mock_make_s3fs_adapter):
+    def test_end_to_end_mosaic(self, mock_download, mock_make_s3fs,
+                               mock_make_s3fs_adapter, mock_compute_chunksize):
         """ Full end-to-end test of the adapter from call to `main` to Harmony
             STAC catalog output for multiple input granules, including ensuring
             the contents of the file are correct. This should produce a single
@@ -273,7 +275,7 @@ class TestAdapter(TestCase):
             /
              ├── data
              │   ├── horizontal
-             │   │   ├── east (2, 3, 3) int64
+             │   │   ├── east (2, 3, 3) uint8
              │   │   └── west (2, 3, 3) uint8
              │   └── vertical
              │       ├── north (2, 3, 3) uint8
@@ -284,6 +286,18 @@ class TestAdapter(TestCase):
              └── time (2,) int32
             """).strip()
         self.assertEqual(str(out.tree()), contents)
+
+        # -- behavior assertion
+        mock_compute_chunksize.assert_has_calls([call((1, ), dtype('int32')),
+                                                 call((3, 3), dtype('float32')),
+                                                 call((3, 3), dtype('float32')),
+                                                 call((1, 3, 3), dtype('uint8')),
+                                                 call((1, 3, 3), dtype('uint8')),
+                                                 call((1, 3, 3), dtype('uint8')),
+                                                 call((1, 3, 3), dtype('uint8'))],
+                                                any_order=True)
+        single_files_variable_count = 7
+        self.assertLessEqual(mock_compute_chunksize.call_count, single_files_variable_count)
 
         # -- Metadata Assertions --
         # Root level values
