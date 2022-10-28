@@ -239,10 +239,13 @@ def __copy_aggregated_dimension(variable_path: str, variable_data: np.ndarray,
     for nested_group in variable_path_pieces:
         parent_group = parent_group.require_group(nested_group)
 
+    chunks = (variable_chunk_metadata.get(variable_path)
+              or compute_chunksize(variable_data.shape, variable_data.dtype))
+
     parent_group.require_dataset(variable_basename,
                                  data=variable_data,
                                  shape=variable_data.size,
-                                 chunks=tuple(variable_chunk_metadata[variable_path]),
+                                 chunks=tuple(chunks),
                                  dtype=variable_data.dtype)
 
 
@@ -333,10 +336,13 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
 
         fill_value = getattr(netcdf_variable, '_FillValue', 0)
 
+        chunks = (variable_chunk_metadata.get(resolved_variable_name)
+                  or compute_chunksize(netcdf_variable.shape, netcdf_variable.dtype))
+
         zarr_variable = zarr_group.require_dataset(
             variable_name,
             shape=aggregated_shape,
-            chunks=tuple(variable_chunk_metadata[resolved_variable_name]),
+            chunks=tuple(chunks),
             dtype=netcdf_variable.dtype,
             fill_value=fill_value)
 
