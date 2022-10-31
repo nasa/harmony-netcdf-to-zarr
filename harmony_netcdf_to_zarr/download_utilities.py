@@ -14,6 +14,8 @@ from typing import List
 
 from harmony.util import Config, download
 
+from harmony_netcdf_to_zarr.process_utilities import monitor_processes
+
 
 def download_granules(netcdf_urls: List[str], destination_directory: str,
                       access_token: str, harmony_config: Config,
@@ -54,21 +56,11 @@ def download_granules(netcdf_urls: List[str], destination_directory: str,
         for download_process in processes:
             download_process.start()
 
-        # Ensure worker processes exit successfully
-        exit_codes = []
-        for download_process in processes:
-            download_process.join()
-            exit_codes.append(download_process.exitcode)
-            download_process.close()
+        monitor_processes(processes, shared_namespace, 'Error Exit occurred downloading data to Harmony.')
 
-        logger.info(f'process exitcodes: {exit_codes}')
         if hasattr(shared_namespace, 'exception'):
             raise RuntimeError('Download failed: '
                                f'{shared_namespace.exception}')
-
-        if not all(code == 0 for code in exit_codes):
-            raise RuntimeError('Error Exit occurred downloading data to Harmony: '
-                               f'processes exit codes: {exit_codes}')
 
         # Copy paths so they persist outside of the Manager context.
         download_paths = deepcopy(local_paths)
@@ -90,7 +82,9 @@ def _download_worker(download_queue: Queue, shared_namespace: Namespace,
         administered by the process manager instance.
 
     """
-    while not hasattr(shared_namespace, 'exception') and not download_queue.empty():
+    while (not hasattr(shared_namespace, 'exception')
+           and not hasattr(shared_namespace, 'process_error')
+           and not download_queue.empty()):
         try:
             netcdf_url = download_queue.get_nowait()
         except QueueEmpty:
