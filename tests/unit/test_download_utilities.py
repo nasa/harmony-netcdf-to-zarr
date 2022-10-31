@@ -1,11 +1,13 @@
 """ Unit tests for the `harmony_netcdf_to_zarr.download_utilities` module. """
 from logging import getLogger
+from multiprocessing import Process
 from os import remove as remove_file
 from os.path import dirname, exists as file_exists, join as join_path
 from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
+from unittest.mock import patch, Mock
 
 from harmony.util import config
 
@@ -74,3 +76,22 @@ class TestDownloadUtilities(TestCase):
         self.assertTrue(str(context_manager.exception).startswith(
             'Download failed: Unable to download a url of unknown type'
         ))
+
+    @patch('harmony_netcdf_to_zarr.download_utilities.Process')
+    def test_download_granules_process_error(self, mock_process):
+        """Check that a request to download all files that experiences an
+        error exit raises an expected assertion .
+
+        """
+        # Convert output to set, as order may not be preserved:
+        processes = [Mock(Process), Mock(Process), Mock(Process)]
+        for p in processes:
+            p.exitcode = 0
+        processes[0].exitcode = -9
+        mock_process.side_effect = processes
+
+        regexMessage = 'Error Exit occurred downloading data to Harmony: processes exit codes: \[-9.*'
+        with self.assertRaisesRegex(RuntimeError, regexMessage) as context_manager:
+            download_granules(self.netcdf_urls, self.temp_dir,
+                              self.access_token, self.harmony_config,
+                              self.logger)
