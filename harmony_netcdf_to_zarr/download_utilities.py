@@ -55,13 +55,21 @@ def download_granules(netcdf_urls: List[str], destination_directory: str,
             download_process.start()
 
         # Ensure worker processes exit successfully
+        exit_codes = []
         for download_process in processes:
             download_process.join()
+            exit_codes.append(download_process.exitcode)
             download_process.close()
 
+        logger.info(f'process exitcodes: {exit_codes}')
         if hasattr(shared_namespace, 'exception'):
             raise RuntimeError('Download failed: '
                                f'{shared_namespace.exception}')
+
+        if not all(code == 0 for code in exit_codes):
+            raise RuntimeError('Error Exit occurred downloading data to Harmony: '
+                               f'processes exit codes: {exit_codes}')
+
 
         # Copy paths so they persist outside of the Manager context.
         download_paths = deepcopy(local_paths)
