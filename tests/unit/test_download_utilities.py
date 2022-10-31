@@ -83,7 +83,7 @@ class TestDownloadUtilities(TestCase):
         error exit raises an expected assertion .
 
         """
-        processes = [Mock(spec=Process), Mock(spec=Process)]
+        processes = [Mock(spec=Process), Mock(spec=Process), Mock(spec=Process)]
         for p in processes:
             p.exitcode = 0
         processes[0].exitcode = -9
