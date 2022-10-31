@@ -1,6 +1,6 @@
 """ Tests the `harmony_netcdf_to_zarr.mosaic_utilities` module. """
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 from unittest import TestCase
 
 from netCDF4 import Dataset
@@ -156,8 +156,8 @@ class TestMosaicUtilities(TestCase):
 
         # Ensure both NetCDF-4 datasets were parsed:
         self.assertEqual(mock_dataset.call_count, 2)
-        mock_dataset.assert_any_call(self.test_dataset_path, 'r')
-        mock_dataset.assert_any_call('second_dataset.nc', 'r')
+        mock_dataset.assert_has_calls([call(self.test_dataset_path, 'r'),
+                                       call('second_dataset.nc', 'r')])
 
         # Ensure all dimensions are detected from input datasets:
         expected_dimensions = {'/latitude', '/longitude', '/time'}
@@ -205,6 +205,31 @@ class TestMosaicUtilities(TestCase):
                            np.array([30.0]))
         assert_array_equal(time_dimension['second_dataset.nc'].values,
                            np.array([60.0]))
+
+    @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
+    def test_dimensions_mapping_single_input(self, mock_dataset):
+        """ Ensure that, when a single input is given to `DimensionsMapping`,
+            the class will not try to create a regularly spaced dimension
+            instead of the input dimensions. This ensures for a single input
+            granule, the output Zarr exactly matches the input Zarr.
+
+        """
+        # Have to mock `netCDF4.Dataset` responses, as they are only in-memory.
+        mock_dataset.return_value = self.test_dataset
+
+        input_datasets = [self.test_dataset_path]
+        dimensions_mapping = DimensionsMapping(input_datasets)
+
+        # Ensure both NetCDF-4 datasets were parsed:
+        mock_dataset.assert_called_once_with(self.test_dataset.path, 'r')
+
+        # Ensure all dimensions are detected from input datasets:
+        expected_dimensions = {'/latitude', '/longitude', '/time'}
+        self.assertSetEqual(set(dimensions_mapping.input_dimensions.keys()),
+                            expected_dimensions)
+
+        # Ensure no aggregated output dimensions were derived:
+        self.assertDictEqual(dimensions_mapping.output_dimensions, {})
 
     @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
     def test_dimensions_mapping_output_merra(self, mock_dataset):
