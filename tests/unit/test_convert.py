@@ -256,6 +256,7 @@ class TestConvert(TestCase):
                                           datetime(2021, 2, 28, 3, 30))
 
         mock_chunks.returns = {'unusedShapes': ()}
+        zarr_store = DirectoryStore(path_join(self.temp_dir, 'test.zarr'))
         processes = [Mock(Process), Mock(Process), Mock(Process)]
         for p in processes:
             p.exitcode = 0
@@ -267,5 +268,5 @@ class TestConvert(TestCase):
         regexMessage = 'Problem writing data to Zarr store: processes exit codes: \[-9, 0, 0\]'
         with self.assertRaisesRegex(RuntimeError, regexMessage):
             mosaic_to_zarr(input_granules,
-                           zarr_store='fakestorename',
+                           zarr_store=zarr_store,
                            logger=logger)
