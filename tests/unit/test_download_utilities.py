@@ -83,14 +83,13 @@ class TestDownloadUtilities(TestCase):
         error exit raises an expected assertion .
 
         """
-        # Convert output to set, as order may not be preserved:
-        processes = [Mock(Process), Mock(Process), Mock(Process)]
+        processes = [Mock(spec=Process), Mock(spec=Process)]
         for p in processes:
             p.exitcode = 0
         processes[0].exitcode = -9
         mock_process.side_effect = processes
 
-        regexMessage = 'Error Exit occurred downloading data to Harmony: processes exit codes: \[-9, 0, 0\]'
+        regexMessage = 'Error Exit occurred downloading data to Harmony: processes exit codes: \[-9, 0.*'
         with self.assertRaisesRegex(RuntimeError, regexMessage):
             download_granules(self.netcdf_urls, self.temp_dir,
                               self.access_token, self.harmony_config,
