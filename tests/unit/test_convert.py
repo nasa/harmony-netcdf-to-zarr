@@ -1,11 +1,13 @@
 """ Tests the Harmony convert module """
 from datetime import datetime
+from logging import getLogger
+from multiprocessing import Process
 from os.path import join as path_join
 from pytest import raises
 from shutil import rmtree
 from tempfile import mkdtemp
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from netCDF4 import Dataset
 from numpy.testing import assert_array_equal
@@ -17,7 +19,8 @@ from harmony_netcdf_to_zarr.convert import (__copy_attrs as copy_attrs,
                                             __copy_group as copy_group,
                                             compute_chunksize,
                                             __get_aggregated_shape as get_aggregated_shape,
-                                            __insert_data_slice as insert_data_slice)
+                                            __insert_data_slice as insert_data_slice,
+                                            mosaic_to_zarr)
 from harmony_netcdf_to_zarr.mosaic_utilities import DimensionsMapping
 from tests.util.file_creation import create_gpm_dataset
 
@@ -241,3 +244,28 @@ class TestConvert(TestCase):
                                 in mock_copy_variable.call_args_list}
 
         self.assertSetEqual(all_input_variables, all_output_variables)
+
+    @patch('harmony_netcdf_to_zarr.convert.granule_chunk_shapes')
+    @patch('harmony_netcdf_to_zarr.convert.Process')
+    def test_failed_multiprocess(self, mock_process, mock_chunks):
+        """Ensure killed subprocess propagates to parent.
+        """
+        logger = getLogger('test')
+
+        test_granule = create_gpm_dataset(self.temp_dir,
+                                          datetime(2021, 2, 28, 3, 30))
+
+        mock_chunks.returns = {'unusedShapes': ()}
+        processes = [Mock(Process), Mock(Process), Mock(Process)]
+        for p in processes:
+            p.exitcode = 0
+        processes[0].exitcode = -9
+        mock_process.side_effect = processes
+
+        input_granules = [test_granule, test_granule, test_granule]
+
+        regexMessage = 'Problem writing data to Zarr store: processes exit codes: \[-9, 0, 0\]'
+        with self.assertRaisesRegex(RuntimeError, regexMessage):
+            mosaic_to_zarr(input_granules,
+                           zarr_store='fakestorename',
+                           logger=logger)

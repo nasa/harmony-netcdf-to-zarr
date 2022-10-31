@@ -70,7 +70,6 @@ def download_granules(netcdf_urls: List[str], destination_directory: str,
             raise RuntimeError('Error Exit occurred downloading data to Harmony: '
                                f'processes exit codes: {exit_codes}')
 
-
         # Copy paths so they persist outside of the Manager context.
         download_paths = deepcopy(local_paths)
 

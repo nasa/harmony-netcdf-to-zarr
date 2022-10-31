@@ -118,14 +118,13 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
             exit_codes.append(output_process.exitcode)
             output_process.close()
 
-
         logger.info(f'process exitcodes: {exit_codes}')
         if hasattr(shared_namespace, 'exception'):
             raise RuntimeError('Problem writing output data to Zarr store: '
                                f'{shared_namespace.exception}')
 
         if not all(code == 0 for code in exit_codes):
-            raise RuntimeError('Problem occurred writing data to Zarr store: '
+            raise RuntimeError('Problem writing data to Zarr store: '
                                f'processes exit codes: {exit_codes}')
 
     consolidate_metadata(zarr_store)

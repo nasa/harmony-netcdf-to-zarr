@@ -90,8 +90,8 @@ class TestDownloadUtilities(TestCase):
         processes[0].exitcode = -9
         mock_process.side_effect = processes
 
-        regexMessage = 'Error Exit occurred downloading data to Harmony: processes exit codes: \[-9.*'
-        with self.assertRaisesRegex(RuntimeError, regexMessage) as context_manager:
+        regexMessage = 'Error Exit occurred downloading data to Harmony: processes exit codes: \[-9, 0, 0\]'
+        with self.assertRaisesRegex(RuntimeError, regexMessage):
             download_granules(self.netcdf_urls, self.temp_dir,
                               self.access_token, self.harmony_config,
                               self.logger)
