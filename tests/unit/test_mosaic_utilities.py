@@ -220,10 +220,10 @@ class TestMosaicUtilities(TestCase):
         input_datasets = [self.test_dataset_path]
         dimensions_mapping = DimensionsMapping(input_datasets)
 
-        # Ensure both NetCDF-4 datasets were parsed:
-        mock_dataset.assert_called_once_with(self.test_dataset.path, 'r')
+        # Ensure the NetCDF-4 dataset was parsed:
+        mock_dataset.assert_called_once_with(self.test_dataset_path, 'r')
 
-        # Ensure all dimensions are detected from input datasets:
+        # Ensure all dimensions are detected from the input dataset:
         expected_dimensions = {'/latitude', '/longitude', '/time'}
         self.assertSetEqual(set(dimensions_mapping.input_dimensions.keys()),
                             expected_dimensions)
