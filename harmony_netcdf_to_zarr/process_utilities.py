@@ -7,7 +7,7 @@ from typing import List
 def monitor_processes(processes: List[Process], shared_namespace: Namespace, error_notice: str) -> None:
     """Monitor multiprocess processes for errors.
 
-    Run and monitor multiprocessing processes ensure successful exits
+    Run and monitor multiprocessing processes ensure successful exits.
     """
 
     # start all processes
@@ -24,6 +24,9 @@ def monitor_processes(processes: List[Process], shared_namespace: Namespace, err
         process.join()
         exit_codes.append(process.exitcode)
         process.close()
+
+    if hasattr(shared_namespace, 'exception'):
+        raise RuntimeError(f'{error_notice}: {shared_namespace.exception}')
 
     if hasattr(shared_namespace, 'process_error'):
         raise RuntimeError(f'{error_notice}: processes exit codes: {exit_codes}')

@@ -1,5 +1,6 @@
 """ Tests the Harmony convert module """
 from datetime import datetime
+from itertools import chain, repeat
 from logging import getLogger
 from multiprocessing import Process
 from os.path import join as path_join
@@ -257,9 +258,18 @@ class TestConvert(TestCase):
 
         mock_chunks.returns = {'unusedShapes': ()}
         zarr_store = DirectoryStore(path_join(self.temp_dir, 'test.zarr'))
+
+        # Set up process.is_alive return values
+        n_successfull_polls = 5
+        effect = chain(repeat(True, n_successfull_polls), repeat(False))
+
+        def side_effect():
+            return next(effect)
+
         processes = [Mock(Process), Mock(Process)]
         for p in processes:
             p.exitcode = 0
+            p.is_alive.side_effect = side_effect
         processes[0].exitcode = -9
         mock_process.side_effect = processes
 

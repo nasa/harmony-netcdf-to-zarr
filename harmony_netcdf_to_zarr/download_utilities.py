@@ -53,11 +53,7 @@ def download_granules(netcdf_urls: List[str], destination_directory: str,
                                    access_token, harmony_config, logger))
                      for _ in range(process_count)]
 
-        monitor_processes(processes, shared_namespace, 'Error Exit occurred downloading data to Harmony.')
-
-        if hasattr(shared_namespace, 'exception'):
-            raise RuntimeError('Download failed: '
-                               f'{shared_namespace.exception}')
+        monitor_processes(processes, shared_namespace, error_notice='Download failed')
 
         # Copy paths so they persist outside of the Manager context.
         download_paths = deepcopy(local_paths)
