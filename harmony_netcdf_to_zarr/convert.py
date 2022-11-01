@@ -17,7 +17,8 @@ from zarr.core import Array as ZarrArray
 from zarr.convenience import consolidate_metadata
 import numpy as np
 
-from .mosaic_utilities import DimensionsMapping, resolve_reference_path
+from harmony_netcdf_to_zarr.mosaic_utilities import DimensionsMapping, resolve_reference_path
+from harmony_netcdf_to_zarr.process_utilities import monitor_processes
 
 # Types for function signatures
 Number = Union[np.integer, np.floating, int, float]
@@ -112,16 +113,8 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
                                    variable_chunk_metadata))
                      for _ in range(process_count)]
 
-        for output_process in processes:
-            output_process.start()
-
-        for output_process in processes:
-            output_process.join()
-            output_process.close()
-
-        if hasattr(shared_namespace, 'exception'):
-            raise RuntimeError('Problem writing output data to Zarr store: '
-                               f'{shared_namespace.exception}')
+        monitor_processes(processes, shared_namespace,
+                          error_notice='Problem writing data to Zarr store')
 
     consolidate_metadata(zarr_store)
     t2 = time()
@@ -160,7 +153,9 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
         f'{splitext(shared_namespace.zarr_root)[0]}.sync'
     )
 
-    while not hasattr(shared_namespace, 'exception') and not output_queue.empty():
+    while (not hasattr(shared_namespace, 'exception')
+           and not output_queue.empty()
+           and not hasattr(shared_namespace, 'process_error')):
         try:
             input_granule = output_queue.get_nowait()
         except QueueEmpty:
