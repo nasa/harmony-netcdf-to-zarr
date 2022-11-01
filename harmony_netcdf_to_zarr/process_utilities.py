@@ -7,26 +7,23 @@ from typing import List
 def monitor_processes(processes: List[Process], shared_namespace: Namespace, error_notice: str) -> None:
     """Monitor multiprocess processes for errors.
 
-    Monitor the running processes to see if any are killed outside
-    of the running code, process checks
+    Run and monitor multiprocessing processes ensure successful exits
     """
-    alive_array = []
+
+    # start all processes
+    for process in processes:
+        process.start()
+
+    while any(process.is_alive() for process in processes):
+        sleep(.5)
+        if any(process.exitcode not in [None, 0] for process in processes):
+            shared_namespace.process_error = 'process error occurred'
+
     exit_codes = []
-    for _ in range(len(processes)):
-        alive_array.append(True)
-        exit_codes.append(None)
+    for process in processes:
+        process.join()
+        exit_codes.append(process.exitcode)
+        process.close()
 
-    while any(aa is True for aa in alive_array):
-        sleep(1)
-        for i, process in enumerate(processes):
-            exit_codes[i] = process.exitcode
-            alive_array[i] = process.is_alive()
-            if (process.exitcode not in [None, 0]):
-                shared_namespace.process_error = 'process error occurred'
-
-    for output_process in processes:
-        output_process.join()
-        output_process.close()
-
-    if not all(code == 0 for code in exit_codes):
+    if hasattr(shared_namespace, 'process_error'):
         raise RuntimeError(f'{error_notice}: processes exit codes: {exit_codes}')

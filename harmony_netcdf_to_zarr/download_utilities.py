@@ -53,9 +53,6 @@ def download_granules(netcdf_urls: List[str], destination_directory: str,
                                    access_token, harmony_config, logger))
                      for _ in range(process_count)]
 
-        for download_process in processes:
-            download_process.start()
-
         monitor_processes(processes, shared_namespace, 'Error Exit occurred downloading data to Harmony.')
 
         if hasattr(shared_namespace, 'exception'):

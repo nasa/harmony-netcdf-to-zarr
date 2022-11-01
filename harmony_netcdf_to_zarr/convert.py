@@ -110,15 +110,11 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
                                    variable_chunk_metadata))
                      for _ in range(process_count)]
 
-        for output_process in processes:
-            output_process.start()
-
         monitor_processes(processes, shared_namespace, 'Problem writing data to Zarr store')
 
         if hasattr(shared_namespace, 'exception'):
             raise RuntimeError('Problem writing output data to Zarr store: '
                                f'{shared_namespace.exception}')
-
 
     consolidate_metadata(zarr_store)
     t2 = time()
