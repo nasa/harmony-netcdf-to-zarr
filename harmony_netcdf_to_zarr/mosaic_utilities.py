@@ -147,7 +147,11 @@ class DimensionsMapping:
     """ A class containing the information for all dimensions contained in each
         of the input NetCDF-4 granules. This class also will produce single,
         aggregated arrays and metadata (if required) for the output Zarr
-        object.
+        object. Note - output aggregated arrays are only calculated if there is
+        more than one input granule. This ensures that the NetCDF-to-Zarr
+        service is compatible with single-granule requests, where those
+        granules contain irregular dimensions that would otherwise be converted
+        to a dimension with consistent spacing between all pixels.
 
     """
     def __init__(self, input_paths: List[str]):
@@ -156,7 +160,10 @@ class DimensionsMapping:
         self.output_dimensions = {}
         self.output_bounds = {}
         self._map_input_dimensions()
-        self._aggregate_output_dimensions()
+
+        if len(self.input_paths) > 1:
+            # Only calculate regular, aggregated dimensions for multiple inputs
+            self._aggregate_output_dimensions()
 
     def _map_input_dimensions(self):
         """ Iterate through all input files and extract their dimension
