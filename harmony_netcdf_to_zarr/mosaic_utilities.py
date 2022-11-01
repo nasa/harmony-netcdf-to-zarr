@@ -148,10 +148,10 @@ class DimensionsMapping:
         of the input NetCDF-4 granules. This class also will produce single,
         aggregated arrays and metadata (if required) for the output Zarr
         object. Note - output aggregated arrays are only calculated if there is
-        only one input granule. This ensures that the NetCDF-to-Zarr service is
-        compatible with single-granule requests, where those granules contain
-        irregular dimensions that would otherwise be converted to a dimension
-        with consistent spacing between all pixels.
+        more than one input granule. This ensures that the NetCDF-to-Zarr
+        service is compatible with single-granule requests, where those
+        granules contain irregular dimensions that would otherwise be converted
+        to a dimension with consistent spacing between all pixels.
 
     """
     def __init__(self, input_paths: List[str]):
