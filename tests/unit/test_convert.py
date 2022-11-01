@@ -265,8 +265,8 @@ class TestConvert(TestCase):
 
         input_granules = [test_granule, test_granule, test_granule]
 
-        regexMessage = 'Problem writing data to Zarr store: processes exit codes: \[-9, 0.*'
-        with self.assertRaisesRegex(RuntimeError, regexMessage):
+        regex_message = 'Problem writing data to Zarr store: processes exit codes: \[-9, 0.*'
+        with self.assertRaisesRegex(RuntimeError, regex_message):
             mosaic_to_zarr(input_granules,
                            zarr_store=zarr_store,
                            process_count=2,
