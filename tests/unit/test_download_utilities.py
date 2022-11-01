@@ -81,7 +81,7 @@ class TestDownloadUtilities(TestCase):
     @patch('harmony_netcdf_to_zarr.download_utilities.Process')
     def test_download_granules_process_error(self, mock_process):
         """Check that a request to download all files that experiences an
-        error exit raises an expected assertion .
+        error exit raises an expected assertion.
 
         """
         # Set up process.is_alive return values
