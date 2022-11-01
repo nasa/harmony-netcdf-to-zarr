@@ -22,9 +22,11 @@ from harmony.message import Message
 from harmony_netcdf_to_zarr.__main__ import main
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter, ZarrException
 
-from .util.file_creation import (ROOT_METADATA_VALUES, create_full_dataset,
-                                 create_input_catalog, create_large_dataset)
-from .util.harmony_interaction import MOCK_ENV, mock_message
+from tests.util.file_creation import (ROOT_METADATA_VALUES,
+                                      create_full_dataset,
+                                      create_input_catalog,
+                                      create_large_dataset)
+from tests.util.harmony_interaction import MOCK_ENV, mock_message
 
 logger = logging.getLogger()
 
@@ -236,6 +238,12 @@ class TestAdapter(TestCase):
         local_zarr = DirectoryStore(os.path.join(self.temp_dir, 'test.zarr'))
         mock_make_s3fs_adapter.return_value.get_mapper.return_value = local_zarr
         mock_make_s3fs.return_value.get_mapper.return_value = local_zarr
+
+        def chunksize_side_effect(input_array_size, _):
+            """ Set compute_chunksize mock to return the input array size """
+            return list(input_array_size)
+
+        mock_compute_chunksize.side_effect = chunksize_side_effect
 
         # Create mock data. Science variable and time for second NetCDF-4 must
         # be different to first to allow mosaic testing.
