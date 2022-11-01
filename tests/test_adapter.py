@@ -237,6 +237,12 @@ class TestAdapter(TestCase):
         mock_make_s3fs_adapter.return_value.get_mapper.return_value = local_zarr
         mock_make_s3fs.return_value.get_mapper.return_value = local_zarr
 
+        def chunksize_side_effect(input_array_size, _):
+            """ Set compute_chunksize mock to return the input array size """
+            return list(input_array_size)
+
+        mock_compute_chunksize.side_effect = chunksize_side_effect
+
         # Create mock data. Science variable and time for second NetCDF-4 must
         # be different to first to allow mosaic testing.
         first_file = create_full_dataset()
