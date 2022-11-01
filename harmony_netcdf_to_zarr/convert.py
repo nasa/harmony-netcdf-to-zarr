@@ -79,11 +79,14 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
 
     # Write dimension information from DimensionsMapping (including bounds)
     # Store list of aggregated dimensions/variables to avoid writing them again
+    # Aggregation will only occur for multiple granule requests that set
+    # `concatenate=true`.
     dim_mapping = DimensionsMapping(input_granules)
     variable_chunk_metadata = granule_chunk_shapes(input_granules[0])
 
-    aggregated_dimensions = __copy_aggregated_dimensions(dim_mapping,
-                                                         zarr_store, variable_chunk_metadata)
+    aggregated_dimensions = __copy_aggregated_dimensions(
+        dim_mapping, zarr_store, variable_chunk_metadata
+    )
 
     if process_count is None:
         process_count = min(cpu_count(), len(input_granules))

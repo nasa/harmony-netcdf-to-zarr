@@ -41,12 +41,14 @@ class TestAdapter(TestCase):
         rmtree(self.metadata_dir)
         rmtree(self.temp_dir)
 
+    @patch('harmony_netcdf_to_zarr.convert.__copy_aggregated_dimension')
     @patch('harmony_netcdf_to_zarr.adapter.make_s3fs')
     @patch('harmony_netcdf_to_zarr.convert.make_s3fs')
     @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
     def test_end_to_end_file_conversion(self, mock_download, mock_make_s3fs,
-                                        mock_make_s3fs_adapter):
+                                        mock_make_s3fs_adapter,
+                                        mock_copy_aggregated_dimension):
         """ Full end-to-end test of the adapter from call to `main` to Harmony
             STAC catalog output, including ensuring the contents of the file
             are correct.
@@ -54,6 +56,13 @@ class TestAdapter(TestCase):
             Mocks S3 interactions with a local Zarr file store and download of
             granules due to `moto` and `multiprocessing` incompatibility
             issues.
+
+            The `__copy_aggregated_dimension` function is also mocked, to show
+            that the `DimensionsMapping` class created for a single granule
+            request does not contain any aggregated dimension. This indicates
+            that even when an input dimension (e.g., time) is irregular, the
+            service will not try to create a regular grid, but instead will
+            exactly output the input dimension and grid.
 
         """
         local_zarr = DirectoryStore(os.path.join(self.temp_dir, 'test.zarr'))
@@ -73,6 +82,9 @@ class TestAdapter(TestCase):
                  config=self.config)
         finally:
             os.remove(netcdf_file)
+
+        # Assert that no aggregation was attempted in the output Zarr:
+        mock_copy_aggregated_dimension.assert_not_called()
 
         # Assertions to ensure STAC output contains correct items, and the
         # new output item has the correct temporal and spatial extents
