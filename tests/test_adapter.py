@@ -22,9 +22,11 @@ from harmony.message import Message
 from harmony_netcdf_to_zarr.__main__ import main
 from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter, ZarrException
 
-from .util.file_creation import (ROOT_METADATA_VALUES, create_full_dataset,
-                                 create_input_catalog, create_large_dataset)
-from .util.harmony_interaction import MOCK_ENV, mock_message
+from tests.util.file_creation import (ROOT_METADATA_VALUES,
+                                      create_full_dataset,
+                                      create_input_catalog,
+                                      create_large_dataset)
+from tests.util.harmony_interaction import MOCK_ENV, mock_message
 
 logger = logging.getLogger()
 
