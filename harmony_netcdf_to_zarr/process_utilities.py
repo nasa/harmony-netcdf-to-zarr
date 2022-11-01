@@ -9,8 +9,6 @@ def monitor_processes(processes: List[Process], shared_namespace: Namespace, err
 
     Run and monitor multiprocessing processes ensure successful exits.
     """
-
-    # start all processes
     for process in processes:
         process.start()
 
