@@ -6,7 +6,7 @@ from os.path import splitext
 from queue import Empty as QueueEmpty
 from re import findall
 from time import time
-from typing import Any, List, Set, Tuple, Union, Dict
+from typing import Any, List, Set, Tuple, Union, Dict, MutableMapping
 
 from fsspec.mapping import FSMap
 from netCDF4 import Dataset, Group as NetCDFGroup, Variable as NetCDFVariable
@@ -116,7 +116,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
         monitor_processes(processes, shared_namespace,
                           error_notice='Problem writing data to Zarr store')
 
-    consolidate_metadata(zarr_store)
+    _finalize_metadata(zarr_store)
     t2 = time()
     logger.info(f'ZarrStore filled in {(t2-t1):.4f}s, N_GRANULES: {len(input_granules)}, '
                 f'N_PROCESSES:{process_count}, sec/gran: {(t2-t1)/len(input_granules):.4f}')
@@ -125,6 +125,20 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
         zarr_store.close()
     except AttributeError:
         pass
+
+
+def _finalize_metadata(store: MutableMapping) -> None:
+    """Safely prepare a store for consolidated metadata reading.
+
+    This function forces a "flush" fo the input store before calling zarr's
+    consolidate_metadata function.  This ensures that whatever store handle is
+    passed to this routine has the most up to date information before
+    consolidation.
+
+    """
+    store['.zforceflush'] = b'Temp file to force store sync.'
+    del store['.zforceflush']
+    consolidate_metadata(store)
 
 
 def _output_worker(output_queue: Queue, shared_namespace: Namespace,
