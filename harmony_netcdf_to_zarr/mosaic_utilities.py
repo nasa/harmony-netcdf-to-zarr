@@ -10,7 +10,7 @@ from dateutil.parser import parse as parse_datetime
 from netCDF4 import Dataset, Group, Variable
 import numpy as np
 
-from .exceptions import MixedDimensionTypeError
+from harmony_netcdf_to_zarr.exceptions import MixedDimensionTypeError
 
 
 BoundsTuple = Tuple[Optional[str], Optional[np.ndarray]]
