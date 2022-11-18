@@ -130,7 +130,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
 def _finalize_metadata(store: MutableMapping) -> None:
     """Safely prepare a store for consolidated metadata reading.
 
-    This function forces a "flush" fo the input store before calling zarr's
+    This function forces a "flush" of the input store before calling zarr's
     consolidate_metadata function.  This ensures that whatever store handle is
     passed to this routine has the most up to date information before
     consolidation.
