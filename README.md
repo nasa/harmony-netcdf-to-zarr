@@ -138,11 +138,12 @@ should be updated when any code is added or updated within the repository.
 
 When a feature branch is ready for review, a Pull Request (PR) should be opened
 against the `main` branch. This will automatically trigger a GitHub workflow
-that will run the `unittest` suite.
+that will run the `unittest` suite (see:
+`.github/workflows/run_tests_on_pull_requests.yml`).
 
 When a PR is merged against the `main` branch, a different workflow will check
 if there are updates to the `version.txt` file. This file should contain a
-semantic version number.
+semantic version number (see: `.github/workflows/publish_docker_image.yml`).
 
 If there are updates to `version.txt`, the GitHub workflow will:
 

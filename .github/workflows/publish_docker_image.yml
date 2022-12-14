@@ -1,3 +1,10 @@
+# This workflow will run when changes are detected in the `main` branch. It
+# will first trigger the reusable workflow in `.github/workflows/run_tests.yml`,
+# which sets up the local Python environment and runs the `unittest` suite.
+# If that workflow is successful, a tag is added to the latest git commit, a
+# GitHub release is created and the latest version of the service Docker image
+# is pushed to ghcr.io.
+
 name: Publish Harmony NetCDF-to-Zarr Docker image to ghcr.io
 
 on:
@@ -11,60 +18,7 @@ env:
 
 jobs:
   run_tests:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ 3.8, 3.9 ]
-
-    steps:
-      - name: Retrieve harmony-netcdf-to-zarr repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements/core.txt -r requirements/dev.txt
-
-      - name: Run lint
-        run: |
-          flake8 --ignore=W503 harmony_netcdf_to_zarr
-
-      - name: Run tests
-        run: |
-          bin/test >& test_results-${{ matrix.python-version }}.txt
-
-      - name: Generate coverage report
-        if: ${{ always() }}
-        run: |
-          coverage report -m >& coverage-report-${{ matrix.python-version }}.txt
-          coverage html --dir htmlcov-${{ matrix.python-version }}
-
-      - name: Archive test results
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: test results (for Python ${{ matrix.python-version }}
-          path: test_results-${{ matrix.python-version }}.txt
-
-      - name: Archive code coverage report (plain text)
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: code coverage report (plain text) (for Python ${{ matrix.python-version }})
-          path: coverage-report-${{ matrix.python-version }}.txt
-
-      - name: Archive code coverage report (HTML)
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: code coverage report (HTML) (for Python ${{ matrix.python-version }})
-          path: htmlcov-${{ matrix.python-version }}/*
+    uses: ./.github/workflows/run_tests.yml
 
   create_github_release:
     needs: run_tests

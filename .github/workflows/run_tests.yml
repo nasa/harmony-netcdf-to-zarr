@@ -1,0 +1,64 @@
+# This workflow will install Python dependencies, run tests,
+# and report test results and code coverage as artifacts. It will
+# be called by the workflow that run tests against new PRs and as
+# a first step in the workflow that publishes new Docker images.
+
+name: A reusable workflow to build and run the unit test suite
+
+on:
+  workflow_call
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Retrieve harmony-netcdf-to-zarr repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.9 (version used by service)
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/core.txt -r requirements/dev.txt
+
+      - name: Run lint
+        run: |
+          flake8 --ignore=W503 harmony_netcdf_to_zarr
+
+      - name: Run tests
+        run: |
+          bin/test >& test_results.txt
+
+      - name: Generate coverage report
+        if: ${{ always() }}
+        run: |
+          coverage report -m >& coverage_report.txt
+          coverage html --dir htmlcov
+
+      - name: Archive test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test result (Python 3.9)
+          path: test_results.txt
+
+      - name: Archive code coverage report (plain text)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: code coverage report (plain text)
+          path: coverage_report.txt
+
+      - name: Archive code coverage report (HTML)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: code coverage report (HTML)
+          path: htmlcov/*
