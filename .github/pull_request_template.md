@@ -10,3 +10,4 @@ A short description of the changes in this PR.
 * [ ] Jira ticket acceptance criteria met.
 * [ ] Tests added/updated and passing.
 * [ ] Documentation updated (if needed).
+* [ ] `version.txt` and `CHANGELOG.md` updated (if publishing a new release).

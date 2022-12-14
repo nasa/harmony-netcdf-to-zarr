@@ -1,0 +1,139 @@
+name: Publish Harmony NetCDF-to-Zarr Docker image to ghcr.io
+
+on:
+  push:
+    branches: [ main ]
+    paths: version.txt
+
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ 3.8, 3.9 ]
+
+    steps:
+      - name: Retrieve harmony-netcdf-to-zarr repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/core.txt -r requirements/dev.txt
+
+      - name: Run lint
+        run: |
+          flake8 --ignore=W503 harmony_netcdf_to_zarr
+
+      - name: Run tests
+        run: |
+          bin/test >& test_results-${{ matrix.python-version }}.txt
+
+      - name: Generate coverage report
+        if: ${{ always() }}
+        run: |
+          coverage report -m >& coverage-report-${{ matrix.python-version }}.txt
+          coverage html --dir htmlcov-${{ matrix.python-version }}
+
+      - name: Archive test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test results (for Python ${{ matrix.python-version }}
+          path: test_results-${{ matrix.python-version }}.txt
+
+      - name: Archive code coverage report (plain text)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: code coverage report (plain text) (for Python ${{ matrix.python-version }})
+          path: coverage_report-${{ matrix.python-version }}.txt
+
+      - name: Archive code coverage report (HTML)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: code coverage report (HTML) (for Python ${{ matrix.python-version }})
+          path: htmlcov-${{ matrix.python-version }}/*
+
+  create_github_release:
+    needs: run_tests
+    permissions:
+      # write permission is required to create a GitHub release
+      contents: write
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout harmony-netcdf-to-zarr repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Extract semantic version number
+        run: echo "semantic_version=$(cat version.txt)" >> $GITHUB_ENV
+
+      - name: Extract markdown notes from CHANGELOG.md
+        run: |
+          python bin/extract_version_notes.py
+
+      - name: Create Git tag
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ env.semantic_version }}
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          bodyFile: "version_notes.md"
+          tag: ${{ env.semantic_version }}
+
+  build_and_publish_image:
+    needs: run_tests
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Checkout harmony-netcdf-to-zarr repository
+        uses: actions/checkout@v3
+
+      - name: Extract semantic version number
+        run: echo "semantic_version=$(cat version.txt)" >> $GITHUB_ENV
+
+      - name: Log-in to ghcr.io registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add tags to the Docker image
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.semantic_version }}
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
