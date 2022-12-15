@@ -1,0 +1,13 @@
+# This workflow will run when a PR is opened against the `main` branch. It will
+# trigger the reusable workflow in `.github/workflows/run_tests.yml`, which
+# sets up the local Python environment and runs the `unittest` suite.
+
+name: Build and test PR branches
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_and_test:
+    uses: ./.github/workflows/run_tests.yml

@@ -1,0 +1,93 @@
+# This workflow will run when changes are detected in the `main` branch. It
+# will first trigger the reusable workflow in `.github/workflows/run_tests.yml`,
+# which sets up the local Python environment and runs the `unittest` suite.
+# If that workflow is successful, a tag is added to the latest git commit, a
+# GitHub release is created and the latest version of the service Docker image
+# is pushed to ghcr.io.
+
+name: Publish Harmony NetCDF-to-Zarr Docker image to ghcr.io
+
+on:
+  push:
+    branches: [ main ]
+    paths: version.txt
+
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io
+
+jobs:
+  run_tests:
+    uses: ./.github/workflows/run_tests.yml
+
+  create_github_release:
+    needs: run_tests
+    permissions:
+      # write permission is required to create a GitHub release
+      contents: write
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout harmony-netcdf-to-zarr repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Extract semantic version number
+        run: echo "semantic_version=$(cat version.txt)" >> $GITHUB_ENV
+
+      - name: Extract markdown notes from CHANGELOG.md
+        run: |
+          python bin/extract_version_notes.py
+
+      - name: Create Git tag
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ env.semantic_version }}
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          bodyFile: "version_notes.md"
+          tag: ${{ env.semantic_version }}
+
+  build_and_publish_image:
+    needs: run_tests
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Checkout harmony-netcdf-to-zarr repository
+        uses: actions/checkout@v3
+
+      - name: Extract semantic version number
+        run: echo "semantic_version=$(cat version.txt)" >> $GITHUB_ENV
+
+      - name: Log-in to ghcr.io registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add tags to the Docker image
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.semantic_version }}
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
