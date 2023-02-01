@@ -83,7 +83,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}},value=${{ env.semantic_version }}
 
-      - name: Push Docker image
+      - name: Build and Push Docker image
         uses: docker/build-push-action@v3
         with:
           context: .
