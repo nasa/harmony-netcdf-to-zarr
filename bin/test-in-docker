@@ -4,7 +4,7 @@
 # suite.  It is meant to allow development and testing without repeatedly rebuilding the docker image.  To
 # run a completely clean container using only what is in the image, as will be done in CI environments,
 # run:
-# `docker run --rm -it --env-file=.env harmonyservices/netcdf-to-zarr-tests`
+# `docker run --rm -it --env-file=.env ghcr.io/nasa/harmony-netcdf-to-zarr-test`
 
 # If the optional environment variable LOCAL_SVCLIB_DIR is set to the directory
 # of a local clone of the `harmony-service-lib-py` repo, it will be mounted
@@ -31,5 +31,5 @@ docker run --rm -it \
   -v $(pwd):/opt/harmony-netcdf-to-zarr \
   ${svclib_volume} \
   --entrypoint= \
-  harmonyservices/netcdf-to-zarr-tests \
+  ghcr.io/nasa/harmony-netcdf-to-zarr-test \
   bash -c "${cmd}"

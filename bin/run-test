@@ -1,0 +1,25 @@
+#!/bin/bash
+###############################################################################
+# Execute the nasa/harmony-netcdf-to-zarr-test Docker image as a container.
+# This will run the unit test suite and check for Python linting errors.
+#
+# This script will output test coverage information to a `coverage` directory
+# and JUnit test report output to a `test-reports` directory on the host
+# machine executing this script.
+#
+###############################################################################
+
+set -ex
+
+# Make the directory into which XML format test reports will be saved
+mkdir -p test-reports
+
+# Make the directory into which coverage reports will be saved
+mkdir -p coverage
+
+# Run the tests in a Docker container with mounted volumes for XML report
+# output and test coverage reporting
+docker run --rm \
+	-v $(pwd)/test-reports:/home/tests/reports \
+	-v $(pwd)/coverage:/home/tests/coverage \
+	ghcr.io/nasa/harmony-netcdf-to-zarr-test

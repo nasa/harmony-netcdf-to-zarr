@@ -2,7 +2,7 @@
 
 set -e
 
-test_image="harmonyservices/netcdf-to-zarr-tests"
+test_image="ghcr.io/nasa/harmony-netcdf-to-zarr-test"
 tag=${1:-latest}
 
 # We use the `host` network mode so we can have access to the

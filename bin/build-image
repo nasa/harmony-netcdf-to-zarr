@@ -5,7 +5,7 @@ set -e
 # source the .env file if it exists
 [[ -f .env ]] && source .env
 
-image="harmonyservices/netcdf-to-zarr"
+image="ghcr.io/nasa/harmony-netcdf-to-zarr"
 tag=${1:-latest}
 
 if [ -d "deps" ]; then

@@ -1,5 +1,5 @@
 ARG TAG=latest
-FROM harmonyservices/netcdf-to-zarr:$TAG
+FROM ghcr.io/nasa/harmony-netcdf-to-zarr:$TAG
 
 COPY requirements/core.txt requirements/core.txt
 
