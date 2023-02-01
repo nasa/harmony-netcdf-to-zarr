@@ -1,4 +1,4 @@
-.PHONY: install test lint build-image push-image build-test-image test-in-docker run-in-docker
+.PHONY: install test lint build-image build-test-image test-in-docker run-in-docker
 
 install:
 	pip install -r requirements/core.txt -r requirements/dev.txt
@@ -11,9 +11,6 @@ lint:
 
 build-image:
 	LOCAL_SVCLIB_DIR=${LOCAL_SVCLIB_DIR} bin/build-image
-
-push-image:
-	bin/push-image
 
 build-test-image:
 	bin/build-test-image
