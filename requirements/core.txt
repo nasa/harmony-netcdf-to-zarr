@@ -4,4 +4,4 @@ netCDF4 ~= 1.6.1
 numpy ~= 1.23.3
 python-dateutil ~= 2.8.2
 s3fs ~= 0.4.0
-zarr ~= 2.13.3
+zarr == 2.13.3
