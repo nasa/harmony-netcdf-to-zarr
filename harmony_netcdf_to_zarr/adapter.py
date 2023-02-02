@@ -13,9 +13,10 @@ from tempfile import mkdtemp
 from harmony import BaseHarmonyAdapter
 from harmony.util import generate_output_filename, HarmonyException
 
-from .convert import make_localstack_s3fs, make_s3fs, mosaic_to_zarr
-from .download_utilities import download_granules
-from .stac_utilities import get_netcdf_urls, get_output_catalog
+from harmony_netcdf_to_zarr.convert import make_localstack_s3fs, make_s3fs, mosaic_to_zarr
+from harmony_netcdf_to_zarr.rechunk import rechunk_zarr
+from harmony_netcdf_to_zarr.download_utilities import download_granules
+from harmony_netcdf_to_zarr.stac_utilities import get_netcdf_urls, get_output_catalog
 
 
 ZARR_MEDIA_TYPES = ['application/zarr', 'application/x-zarr']
@@ -102,12 +103,25 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
                 output_name = f'{collection}_merged.zarr'
 
             zarr_root = path_join(self.message.stagingLocation, output_name)
+
             zarr_store = self.s3.get_mapper(root=zarr_root, check=False,
                                             create=True)
 
             mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
-            return get_output_catalog(self.catalog, zarr_root)
+
+            temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
+            target_root = zarr_root.replace('.zarr', '_rechunked.zarr')
+            zarr_temp = self.s3.get_mapper(root=temp_root, check=False, create=True)
+            zarr_target = self.s3.get_mapper(root=target_root, check=False, create=True)
+
+            rechunk_zarr(zarr_store, zarr_target, zarr_temp)
+
+            self.s3.rm(zarr_root, recursive=True)
+            self.s3.rm(temp_root, recursive=True)
+
+            self.logger.info(f'rechunked {target_root}')
+            return get_output_catalog(self.catalog, target_root)
         except Exception as service_exception:
             self.logger.error(service_exception, exc_info=1)
             raise ZarrException('Could not create Zarr output: '

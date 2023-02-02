@@ -19,6 +19,9 @@ import numpy as np
 
 from harmony_netcdf_to_zarr.mosaic_utilities import DimensionsMapping, resolve_reference_path
 from harmony_netcdf_to_zarr.process_utilities import monitor_processes
+from harmony_netcdf_to_zarr.log_wrapper import get_logger, log_elapsed
+
+logger = get_logger()
 
 # Types for function signatures
 Number = Union[np.integer, np.floating, int, float]
@@ -26,11 +29,6 @@ ZarrStore = Union[DirectoryStore, FSMap]
 
 # Some global variables that may be shared by different methods
 region = environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
-# This dictionary converts from a string representation of units, such as
-# kibibytes, mebibytes or gibibytes, to a raw number of bytes. This is used
-# when a compressed chunk size is expressed as a string. See the NIST standard
-# for binary prefix: https://physics.nist.gov/cuu/Units/binary.html.
-binary_prefix_conversion_map = {'Ki': 1024, 'Mi': 1048576, 'Gi': 1073741824}
 
 
 def make_localstack_s3fs() -> S3FileSystem:
@@ -48,6 +46,7 @@ def make_s3fs() -> S3FileSystem:
     return S3FileSystem(client_kwargs=dict(region_name=region))
 
 
+@log_elapsed
 def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
                    process_count: int = None, logger: Logger = None):
     """ Convert input NetCDF files to a Zarr store, preserving data, metadata
@@ -176,6 +175,7 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             break
 
         try:
+            logger.info('processing granule')
             with Dataset(input_granule, 'r') as input_dataset:
                 input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
@@ -577,6 +577,12 @@ def compute_chunksize(shape: Union[tuple, list],
                              'NIST standard for binary prefix '
                              '(https://physics.nist.gov/cuu/Units/binary.html)'
                              ' except that only Ki, Mi, and Gi are allowed.')
+
+        # This dictionary converts from a string representation of units, such as
+        # kibibytes, mebibytes or gibibytes, to a raw number of bytes. This is used
+        # when a compressed chunk size is expressed as a string. See the NIST standard
+        # for binary prefix: https://physics.nist.gov/cuu/Units/binary.html.
+        binary_prefix_conversion_map = {'Ki': 1024, 'Mi': 1048576, 'Gi': 1073741824}
 
         compressed_chunksize_byte = int(float(value)) * int(binary_prefix_conversion_map[unit])
 
