@@ -54,6 +54,7 @@ def get_target_chunks(zarr_store: FSMap) -> Dict:
                     varinfo.shape, varinfo.dtype)
             else:
                 target_chunks[f'{group}/{variable}'] = None
+
         for variable in group_dataset.coords.keys():
             target_chunks[f'{group}/{variable}'] = None
 
@@ -67,7 +68,7 @@ def _bounds(variable: str) -> bool:
 def _groups_from_zarr(zarr_root: str) -> List[str]:
     """Get the name of all groups in the zarr_store."""
     original_zarr = open_consolidated(zarr_root, mode='r')
-    groups = []
+    groups = ['']
 
     def is_group(name: str) -> None:
         """Create function to test if the item is a group or not."""
@@ -75,8 +76,5 @@ def _groups_from_zarr(zarr_root: str) -> List[str]:
             groups.append(name)
 
     original_zarr.visit(is_group)
-
-    if not groups:
-        groups = ['/']
 
     return groups

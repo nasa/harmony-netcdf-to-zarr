@@ -109,7 +109,6 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
 
             mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
-
             temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
             target_root = zarr_root.replace('.zarr', '_rechunked.zarr')
             zarr_temp = self.s3.get_mapper(root=temp_root, check=False, create=True)
@@ -120,7 +119,6 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
             self.s3.rm(zarr_root, recursive=True)
             self.s3.rm(temp_root, recursive=True)
 
-            self.logger.info(f'rechunked {target_root}')
             return get_output_catalog(self.catalog, target_root)
         except Exception as service_exception:
             self.logger.error(service_exception, exc_info=1)
