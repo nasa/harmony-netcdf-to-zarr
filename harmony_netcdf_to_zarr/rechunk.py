@@ -11,7 +11,8 @@ import xarray as xr
 
 
 @log_elapsed
-def rechunk_zarr(zarr_store: FSMap, zarr_target: FSMap, zarr_temp: FSMap) -> str:
+def rechunk_zarr(zarr_store: FSMap, zarr_target: FSMap,
+                 zarr_temp: FSMap) -> str:
     """Rechunks a zarr store that was created by the mosaic_to_zarr processes.
 
     This is specific to tuning output zarr store variables to the chunksizes
@@ -29,7 +30,6 @@ def rechunk_zarr(zarr_store: FSMap, zarr_target: FSMap, zarr_temp: FSMap) -> str
     array_plan.execute()
     # TODO [MHS, 02/02/2023] clean up intermediate and input stores.
     consolidate_metadata(zarr_target)
-
 
 
 def get_target_chunks(zarr_store: FSMap) -> Dict:
