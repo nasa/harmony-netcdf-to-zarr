@@ -45,11 +45,9 @@ class TestAdapter(TestCase):
 
     @patch('harmony_netcdf_to_zarr.convert.__copy_aggregated_dimension')
     @patch('harmony_netcdf_to_zarr.adapter.make_s3fs')
-    @patch('harmony_netcdf_to_zarr.convert.make_s3fs')
     @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
     def test_end_to_end_file_conversion(self, mock_download,
-                                        mock_make_s3fs,
                                         mock_make_s3fs_adapter,
                                         mock_copy_aggregated_dimension):
         """ Full end-to-end test of the adapter from call to `main` to Harmony
@@ -76,7 +74,6 @@ class TestAdapter(TestCase):
         mock_make_s3fs_adapter.return_value.get_mapper.side_effect = [
             local_zarr, local_tmp_zarr, local_rechunked_zarr
         ]
-        mock_make_s3fs.return_value.get_mapper.return_value = local_zarr
 
         netcdf_file = create_full_dataset()
         stac_catalog_path = create_input_catalog([netcdf_file])
@@ -176,11 +173,9 @@ class TestAdapter(TestCase):
         self.assertEqual(out['time'][0], 166536)
 
     @patch('harmony_netcdf_to_zarr.adapter.make_s3fs')
-    @patch('harmony_netcdf_to_zarr.convert.make_s3fs')
     @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
     def test_end_to_end_large_file_conversion(self, mock_download,
-                                              mock_make_s3fs,
                                               mock_make_s3fs_adapter):
         """ Full end-to-end test of the adapter to make sure rechunk is
             working. Mocks S3 interactions using @mock_s3.
@@ -196,8 +191,6 @@ class TestAdapter(TestCase):
         mock_make_s3fs_adapter.return_value.get_mapper.side_effect = [
             local_zarr, local_tmp_zarr, local_rechunked_zarr
         ]
-
-        mock_make_s3fs.return_value.get_mapper.return_value = local_zarr
 
         netcdf_file = create_large_dataset()
         stac_catalog_path = create_input_catalog([netcdf_file])
@@ -235,10 +228,9 @@ class TestAdapter(TestCase):
 
     @patch('harmony_netcdf_to_zarr.convert.compute_chunksize')
     @patch('harmony_netcdf_to_zarr.adapter.make_s3fs')
-    @patch('harmony_netcdf_to_zarr.convert.make_s3fs')
     @patch('harmony_netcdf_to_zarr.adapter.download_granules')
     @patch.dict(os.environ, MOCK_ENV)
-    def test_end_to_end_mosaic(self, mock_download, mock_make_s3fs,
+    def test_end_to_end_mosaic(self, mock_download,
                                mock_make_s3fs_adapter, mock_compute_chunksize):
         """ Full end-to-end test of the adapter from call to `main` to Harmony
             STAC catalog output for multiple input granules, including ensuring
@@ -257,7 +249,6 @@ class TestAdapter(TestCase):
         mock_make_s3fs_adapter.return_value.get_mapper.side_effect = [
             local_zarr, local_tmp_zarr, local_rechunked_zarr
         ]
-        mock_make_s3fs.return_value.get_mapper.return_value = local_zarr
 
         def chunksize_side_effect(input_array_size, _):
             """ Set compute_chunksize mock to return the input array size """
