@@ -104,15 +104,20 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
 
             zarr_root = path_join(self.message.stagingLocation, output_name)
 
-            zarr_store = self.s3.get_mapper(root=zarr_root, check=False,
+            zarr_store = self.s3.get_mapper(root=zarr_root,
+                                            check=False,
                                             create=True)
 
             mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
             temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
             target_root = zarr_root.replace('.zarr', '_rechunked.zarr')
-            zarr_temp = self.s3.get_mapper(root=temp_root, check=False, create=True)
-            zarr_target = self.s3.get_mapper(root=target_root, check=False, create=True)
+            zarr_temp = self.s3.get_mapper(root=temp_root,
+                                           check=False,
+                                           create=True)
+            zarr_target = self.s3.get_mapper(root=target_root,
+                                             check=False,
+                                             create=True)
 
             rechunk_zarr(zarr_store, zarr_target, zarr_temp)
 
@@ -122,7 +127,8 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
             return get_output_catalog(self.catalog, target_root)
         except Exception as service_exception:
             self.logger.error(service_exception, exc_info=1)
-            raise ZarrException('Could not create Zarr output: '
-                                f'{str(service_exception)}') from service_exception
+            raise ZarrException(
+                'Could not create Zarr output: '
+                f'{str(service_exception)}') from service_exception
         finally:
             rmtree(workdir)
