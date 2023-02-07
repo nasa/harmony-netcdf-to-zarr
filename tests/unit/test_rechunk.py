@@ -5,9 +5,11 @@ from shutil import rmtree
 from tempfile import mkdtemp, TemporaryDirectory
 from unittest import TestCase
 import xarray as xr
+import zarr
 
 from harmony_netcdf_to_zarr.rechunk import (_groups_from_zarr,
-                                            get_target_chunks)
+                                            get_target_chunks,
+                                            rechunk_zarr)
 
 
 class TestRechunk(TestCase):
@@ -49,6 +51,8 @@ class TestRechunk(TestCase):
         )
         for group in groups:
             ds.to_zarr(location, group=group, consolidated=True)
+
+        zarr.consolidate_metadata(location)
 
     def test__groups_from_zarr_returns_root_group(self):
         """Test a store with no explicit groups or subgroups."""
@@ -123,3 +127,18 @@ class TestRechunk(TestCase):
                                     groups=['Grid1', 'Grid2/sub'])
             actual_chunks = get_target_chunks(store_location)
             self.assertEqual(expected_chunks, actual_chunks)
+
+    def test_rechunking(self):
+        """Test rechunking functionality"""
+        with TemporaryDirectory() as store_location, \
+             TemporaryDirectory() as tmp_location, \
+             TemporaryDirectory() as target_location:
+
+            self.create_basic_store(store_location)
+
+            rechunk_zarr(store_location, target_location, tmp_location)
+            target_zarr = zarr.open(target_location)
+            actual_precipitation_chunks = target_zarr['precipitation'].chunks
+            actual_temperature_chunks = target_zarr['temperature'].chunks
+            self.assertEqual((3600, 1800), actual_temperature_chunks)
+            self.assertEqual((1402, 1402), actual_precipitation_chunks)
