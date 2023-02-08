@@ -122,12 +122,12 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
             try:
                 self.s3.rm(temp_root, recursive=True)
             except FileNotFoundError:
-                self.logger.info('Nothing to clean in {temp_root}')
+                self.logger.info(f'Nothing to clean in {temp_root}')
 
             try:
                 self.s3.rm(target_root, recursive=True)
             except FileNotFoundError:
-                self.logger.info('Nothing to clean in {target_root}')
+                self.logger.info(f'Nothing to clean in {target_root}')
 
             rechunk_zarr(zarr_store, zarr_target, zarr_temp)
 
