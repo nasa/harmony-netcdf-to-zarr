@@ -1,3 +1,9 @@
+## v1.1.0
+### 2023-02-08
+
+* DAS-1699 - Add secondary rechunking step to service. Concatentated requests
+  to the service will now be rechunked before returned to the caller.
+
 ## v1.0.3
 ### 2022-12-13
 
