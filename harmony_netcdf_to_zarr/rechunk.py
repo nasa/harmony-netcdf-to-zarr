@@ -21,7 +21,7 @@ def rechunk_zarr(zarr_store: FSMap, zarr_target: FSMap,
     target_chunks = get_target_chunks(zarr_store)
     opened_zarr_store = open_consolidated(zarr_store, mode='r')
     # TODO [MHS, 02/02/2023] I think maybe having these as s3 is the problem
-    max_memory = '1.0GB'  # how should this be determined?
+    max_memory = '500MB'  # how should this be determined?
     array_plan = rechunk(opened_zarr_store,
                          target_chunks,
                          max_memory,
