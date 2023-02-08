@@ -119,6 +119,9 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
                                              check=False,
                                              create=True)
 
+            self.s3.rm(temp_root, recursive=True)
+            self.s3.rm(target_root, recursive=True)
+
             rechunk_zarr(zarr_store, zarr_target, zarr_temp)
 
             self.s3.rm(zarr_root, recursive=True)

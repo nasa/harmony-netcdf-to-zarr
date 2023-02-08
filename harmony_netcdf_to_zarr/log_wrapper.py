@@ -6,7 +6,7 @@ from harmony.util import config
 from harmony.logging import build_logger
 
 c = config(validate=False)
-c = c._replace(text_logger=True, app_name="netcdf-to-zarr")
+c = c._replace(app_name="netcdf-to-zarr")
 logger = build_logger(c, name='NetCDF-to-Zarr', stream=None)
 logger.propagate = False
 
