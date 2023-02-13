@@ -1,5 +1,5 @@
 from logging import Logger
-from multiprocessing import Manager, Process, Queue
+from multiprocessing import Manager, Process, Queue, current_process
 from multiprocessing.managers import Namespace
 from os import cpu_count, environ
 from os.path import splitext
@@ -147,6 +147,7 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
         array.
 
     """
+    processed_granules = 0
     if shared_namespace.store_type == 'S3FileSystem':
         if environ.get('USE_LOCALSTACK') == 'true':
             s3 = make_localstack_s3fs()
@@ -171,7 +172,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             break
 
         try:
-            logger.info('processing granule')
+            logger.info(f'{current_process().name} processing granule {processed_granules}')
+            processed_granules += 1
             with Dataset(input_granule, 'r') as input_dataset:
                 input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
