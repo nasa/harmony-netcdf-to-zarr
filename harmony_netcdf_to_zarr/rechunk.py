@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from harmony_netcdf_to_zarr.convert import compute_chunksize
-from harmony_netcdf_to_zarr.log_wrapper import log_elapsed
 
 from fsspec.mapping import FSMap
+from time import time
 from rechunker import rechunk
 from typing import List, Dict, TYPE_CHECKING
 if TYPE_CHECKING:
@@ -41,7 +41,10 @@ def rechunk_zarr(zarr_root: str, adapter: NetCDFToZarrAdapter) -> str:
     except FileNotFoundError:
         adapter.logger.info(f'Nothing to clean in {target_root}')
 
+    t1 = time()
     rechunk_zarr_store(zarr_store, zarr_target, zarr_temp)
+    t2 = time()
+    adapter.logger.info(f'Function rechunk_zarr_store executed in {(t2-t1):.4f}s')
 
     adapter.s3.rm(zarr_root, recursive=True)
     adapter.s3.rm(temp_root, recursive=True)
@@ -49,7 +52,6 @@ def rechunk_zarr(zarr_root: str, adapter: NetCDFToZarrAdapter) -> str:
     return target_root
 
 
-@log_elapsed
 def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
                        zarr_temp: FSMap) -> str:
     """Rechunks a zarr store that was created by the mosaic_to_zarr processes.
