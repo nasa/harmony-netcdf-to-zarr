@@ -5,6 +5,7 @@ from harmony_netcdf_to_zarr.convert import compute_chunksize
 
 from fsspec.mapping import FSMap
 from time import time
+import psutil
 from rechunker import rechunk
 from typing import List, Dict, TYPE_CHECKING
 if TYPE_CHECKING:
@@ -61,8 +62,9 @@ def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
     """
     target_chunks = get_target_chunks(zarr_store)
     opened_zarr_store = open_consolidated(zarr_store, mode='r')
-    # This is a best guess on trial and error with an 8Gi Memory container
-    max_memory = '1GB'
+
+    mem_info = psutil.virtual_memory()
+    max_memory = mem_info.available / psutil.cpu_count()
     array_plan = rechunk(opened_zarr_store,
                          target_chunks,
                          max_memory,
@@ -102,7 +104,13 @@ def get_target_chunks(zarr_store: FSMap) -> Dict:
 
 
 def _bounds(variable: str) -> bool:
-    """Determines if a variable is a bounds type variable."""
+    """Is a variable a bounds type variable.
+
+    Coordinates and coordinate bounds are not chunked in a zarr store, this is
+    just a convenience function to determine the coordinate bounds variables by
+    name.
+
+    """
     return variable.endswith(('_bnds', '_bounds'))
 
 
