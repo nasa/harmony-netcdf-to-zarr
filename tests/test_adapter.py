@@ -72,7 +72,7 @@ class TestAdapter(TestCase):
         local_rechunked_zarr = DirectoryStore(os.path.join(self.temp_dir, 'test_rechunked.zarr'))
 
         mock_make_s3fs_adapter.return_value.get_mapper.side_effect = [
-            local_zarr, local_tmp_zarr, local_rechunked_zarr
+            local_zarr, local_zarr, local_tmp_zarr, local_rechunked_zarr
         ]
 
         netcdf_file = create_full_dataset()
@@ -189,7 +189,7 @@ class TestAdapter(TestCase):
         local_rechunked_zarr = DirectoryStore(os.path.join(self.temp_dir, 'test_rechunked.zarr'))
 
         mock_make_s3fs_adapter.return_value.get_mapper.side_effect = [
-            local_zarr, local_tmp_zarr, local_rechunked_zarr
+            local_zarr, local_zarr, local_tmp_zarr, local_rechunked_zarr
         ]
 
         netcdf_file = create_large_dataset()
@@ -247,7 +247,7 @@ class TestAdapter(TestCase):
         local_rechunked_zarr = DirectoryStore(os.path.join(self.temp_dir, 'test_rechunked.zarr'))
 
         mock_make_s3fs_adapter.return_value.get_mapper.side_effect = [
-            local_zarr, local_tmp_zarr, local_rechunked_zarr
+            local_zarr, local_zarr, local_tmp_zarr, local_rechunked_zarr
         ]
 
         def chunksize_side_effect(input_array_size, _):

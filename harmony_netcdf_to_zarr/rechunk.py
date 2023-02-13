@@ -1,18 +1,57 @@
 """Code that will rechunk an existing zarr store."""
+from __future__ import annotations
 
 from harmony_netcdf_to_zarr.convert import compute_chunksize
 from harmony_netcdf_to_zarr.log_wrapper import log_elapsed
 
 from fsspec.mapping import FSMap
 from rechunker import rechunk
-from typing import List, Dict
+from typing import List, Dict, TYPE_CHECKING
+if TYPE_CHECKING:
+    from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
 from zarr import open_consolidated, consolidate_metadata, Group as zarrGroup
 import xarray as xr
 
 
+def rechunk_zarr(zarr_root: str, adapter: NetCDFToZarrAdapter) -> str:
+    """Rechunks the zarr store found at zarr_root location.
+
+    It creates a new rechunked store and removes the store found at zarr_root.
+
+    """
+    temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
+    target_root = zarr_root.replace('.zarr', '_rechunked.zarr')
+
+    zarr_store = adapter.s3.get_mapper(root=zarr_root,
+                                       check=False,
+                                       create=False)
+
+    zarr_temp = adapter.s3.get_mapper(root=temp_root, check=False, create=True)
+    zarr_target = adapter.s3.get_mapper(root=target_root,
+                                        check=False,
+                                        create=True)
+
+    try:
+        adapter.s3.rm(temp_root, recursive=True)
+    except FileNotFoundError:
+        adapter.logger.info(f'Nothing to clean in {temp_root}')
+
+    try:
+        adapter.s3.rm(target_root, recursive=True)
+    except FileNotFoundError:
+        adapter.logger.info(f'Nothing to clean in {target_root}')
+
+    rechunk_zarr_store(zarr_store, zarr_target, zarr_temp)
+
+    adapter.s3.rm(zarr_root, recursive=True)
+    adapter.s3.rm(temp_root, recursive=True)
+
+    return target_root
+
+
 @log_elapsed
-def rechunk_zarr(zarr_store: FSMap, zarr_target: FSMap,
-                 zarr_temp: FSMap) -> str:
+def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
+                       zarr_temp: FSMap) -> str:
     """Rechunks a zarr store that was created by the mosaic_to_zarr processes.
 
     This is specific to tuning output zarr store variables to the chunksizes
@@ -61,6 +100,7 @@ def get_target_chunks(zarr_store: FSMap) -> Dict:
 
 
 def _bounds(variable: str) -> bool:
+    """Determines if a variable is a bounds type variable."""
     return variable.endswith(('_bnds', '_bounds'))
 
 

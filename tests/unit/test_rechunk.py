@@ -9,7 +9,7 @@ import zarr
 
 from harmony_netcdf_to_zarr.rechunk import (_groups_from_zarr,
                                             get_target_chunks,
-                                            rechunk_zarr)
+                                            rechunk_zarr_store)
 
 
 class TestRechunk(TestCase):
@@ -24,7 +24,7 @@ class TestRechunk(TestCase):
     def create_basic_store(self, location, groups=['']):
         """Creates a basic dataset for testing.
 
-        Creates 4 varaibles [lon, lat, temperature, and precipitation],
+        Creates 4 variables [lon, lat, temperature, and precipitation],
         Sets lon and lat to be coordinate variables.
         It writes the dataset to a zarr store.
 
@@ -136,7 +136,7 @@ class TestRechunk(TestCase):
 
             self.create_basic_store(store_location)
 
-            rechunk_zarr(store_location, target_location, tmp_location)
+            rechunk_zarr_store(store_location, target_location, tmp_location)
             target_zarr = zarr.open(target_location)
             actual_precipitation_chunks = target_zarr['precipitation'].chunks
             actual_temperature_chunks = target_zarr['temperature'].chunks

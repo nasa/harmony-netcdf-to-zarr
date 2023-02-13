@@ -110,31 +110,9 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
 
             mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
-            temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
-            target_root = zarr_root.replace('.zarr', '_rechunked.zarr')
-            zarr_temp = self.s3.get_mapper(root=temp_root,
-                                           check=False,
-                                           create=True)
-            zarr_target = self.s3.get_mapper(root=target_root,
-                                             check=False,
-                                             create=True)
+            rechunked_root = rechunk_zarr(zarr_root, self)
 
-            try:
-                self.s3.rm(temp_root, recursive=True)
-            except FileNotFoundError:
-                self.logger.info(f'Nothing to clean in {temp_root}')
-
-            try:
-                self.s3.rm(target_root, recursive=True)
-            except FileNotFoundError:
-                self.logger.info(f'Nothing to clean in {target_root}')
-
-            rechunk_zarr(zarr_store, zarr_target, zarr_temp)
-
-            self.s3.rm(zarr_root, recursive=True)
-            self.s3.rm(temp_root, recursive=True)
-
-            return get_output_catalog(self.catalog, target_root)
+            return get_output_catalog(self.catalog, rechunked_root)
         except Exception as service_exception:
             self.logger.error(service_exception, exc_info=1)
             raise ZarrException(
