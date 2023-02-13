@@ -64,7 +64,7 @@ def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
     opened_zarr_store = open_consolidated(zarr_store, mode='r')
 
     mem_info = psutil.virtual_memory()
-    max_memory = mem_info.available / psutil.cpu_count()
+    max_memory = mem_info.available / (psutil.cpu_count() + 1)
     array_plan = rechunk(opened_zarr_store,
                          target_chunks,
                          max_memory,
