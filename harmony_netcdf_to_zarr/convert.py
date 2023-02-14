@@ -172,8 +172,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             break
 
         try:
-            logger.info(f'{current_process().name} processing granule {processed_granules}')
             processed_granules += 1
+            logger.info(f'{current_process().name} processing granule {processed_granules}')
             with Dataset(input_granule, 'r') as input_dataset:
                 input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
