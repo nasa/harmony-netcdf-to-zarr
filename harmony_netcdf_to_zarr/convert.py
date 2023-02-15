@@ -1,5 +1,5 @@
 from logging import Logger
-from multiprocessing import Manager, Process, Queue, current_process
+from multiprocessing import Manager, Process, Queue
 from multiprocessing.managers import Namespace
 from os import cpu_count, environ
 from os.path import splitext
@@ -91,6 +91,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
     with Manager() as manager:
         output_queue = manager.Queue(len(input_granules))
         shared_namespace = manager.Namespace()
+        shared_namespace.granules_processed = 0
 
         if isinstance(zarr_store, DirectoryStore):
             shared_namespace.store_type = 'DirectoryStore'
@@ -147,7 +148,6 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
         array.
 
     """
-    processed_granules = 0
     if shared_namespace.store_type == 'S3FileSystem':
         if environ.get('USE_LOCALSTACK') == 'true':
             s3 = make_localstack_s3fs()
@@ -172,8 +172,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             break
 
         try:
-            processed_granules += 1
-            logger.info(f'{current_process().name} processing granule {processed_granules}')
+            shared_namespace.granules_processed += 1
+            logger.info(f'processing granule {shared_namespace.granules_processed}')
             with Dataset(input_granule, 'r') as input_dataset:
                 input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
