@@ -9,13 +9,15 @@ from os import environ
 from os.path import join as path_join
 from shutil import rmtree
 from tempfile import mkdtemp
+from uuid import uuid4
 
 from harmony import BaseHarmonyAdapter
 from harmony.util import generate_output_filename, HarmonyException
 
-from .convert import make_localstack_s3fs, make_s3fs, mosaic_to_zarr
-from .download_utilities import download_granules
-from .stac_utilities import get_netcdf_urls, get_output_catalog
+from harmony_netcdf_to_zarr.convert import make_localstack_s3fs, make_s3fs, mosaic_to_zarr
+from harmony_netcdf_to_zarr.rechunk import rechunk_zarr
+from harmony_netcdf_to_zarr.download_utilities import download_granules
+from harmony_netcdf_to_zarr.stac_utilities import get_netcdf_urls, get_output_catalog
 
 
 ZARR_MEDIA_TYPES = ['application/zarr', 'application/x-zarr']
@@ -101,16 +103,22 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
                 collection = self._get_item_source(items[0]).collection
                 output_name = f'{collection}_merged.zarr'
 
+            pre_rechunk_root = path_join(self.message.stagingLocation, f'{uuid4()}.zarr')
             zarr_root = path_join(self.message.stagingLocation, output_name)
-            zarr_store = self.s3.get_mapper(root=zarr_root, check=False,
+
+            zarr_store = self.s3.get_mapper(root=pre_rechunk_root,
+                                            check=False,
                                             create=True)
 
             mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
+            rechunk_zarr(pre_rechunk_root, zarr_root, self)
+
             return get_output_catalog(self.catalog, zarr_root)
         except Exception as service_exception:
             self.logger.error(service_exception, exc_info=1)
-            raise ZarrException('Could not create Zarr output: '
-                                f'{str(service_exception)}') from service_exception
+            raise ZarrException(
+                'Could not create Zarr output: '
+                f'{str(service_exception)}') from service_exception
         finally:
             rmtree(workdir)

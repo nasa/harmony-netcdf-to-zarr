@@ -26,11 +26,6 @@ ZarrStore = Union[DirectoryStore, FSMap]
 
 # Some global variables that may be shared by different methods
 region = environ.get('AWS_DEFAULT_REGION') or 'us-west-2'
-# This dictionary converts from a string representation of units, such as
-# kibibytes, mebibytes or gibibytes, to a raw number of bytes. This is used
-# when a compressed chunk size is expressed as a string. See the NIST standard
-# for binary prefix: https://physics.nist.gov/cuu/Units/binary.html.
-binary_prefix_conversion_map = {'Ki': 1024, 'Mi': 1048576, 'Gi': 1073741824}
 
 
 def make_localstack_s3fs() -> S3FileSystem:
@@ -96,6 +91,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
     with Manager() as manager:
         output_queue = manager.Queue(len(input_granules))
         shared_namespace = manager.Namespace()
+        shared_namespace.granules_processed = 0
 
         if isinstance(zarr_store, DirectoryStore):
             shared_namespace.store_type = 'DirectoryStore'
@@ -110,7 +106,7 @@ def mosaic_to_zarr(input_granules: List[str], zarr_store: Union[FSMap, str],
         processes = [Process(target=_output_worker,
                              args=(output_queue, shared_namespace,
                                    aggregated_dimensions, dim_mapping,
-                                   variable_chunk_metadata))
+                                   variable_chunk_metadata, logger))
                      for _ in range(process_count)]
 
         monitor_processes(processes, shared_namespace,
@@ -143,7 +139,7 @@ def _finalize_metadata(store: MutableMapping) -> None:
 
 def _output_worker(output_queue: Queue, shared_namespace: Namespace,
                    aggregated_dimensions: Set[str], dim_mapping: DimensionsMapping,
-                   variable_chunk_metadata: Dict = {}) -> None:
+                   variable_chunk_metadata: Dict = {}, logger: Logger = None) -> None:
     """ This worker function is executed in a spawned process. It checks for
         items in the main queue, which correspond to local file paths for input
         NetCDF-4 files. If there is at least one URL left for writing, then the
@@ -176,6 +172,8 @@ def _output_worker(output_queue: Queue, shared_namespace: Namespace,
             break
 
         try:
+            shared_namespace.granules_processed += 1
+            logger.info(f'processing granule {shared_namespace.granules_processed}')
             with Dataset(input_granule, 'r') as input_dataset:
                 input_dataset.set_auto_maskandscale(False)
                 __copy_group(input_dataset,
@@ -577,6 +575,12 @@ def compute_chunksize(shape: Union[tuple, list],
                              'NIST standard for binary prefix '
                              '(https://physics.nist.gov/cuu/Units/binary.html)'
                              ' except that only Ki, Mi, and Gi are allowed.')
+
+        # This dictionary converts from a string representation of units, such as
+        # kibibytes, mebibytes or gibibytes, to a raw number of bytes. This is used
+        # when a compressed chunk size is expressed as a string. See the NIST standard
+        # for binary prefix: https://physics.nist.gov/cuu/Units/binary.html.
+        binary_prefix_conversion_map = {'Ki': 1024, 'Mi': 1048576, 'Gi': 1073741824}
 
         compressed_chunksize_byte = int(float(value)) * int(binary_prefix_conversion_map[unit])
 

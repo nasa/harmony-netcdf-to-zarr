@@ -6,7 +6,8 @@
 name: A reusable workflow to build and run the unit test suite
 
 on:
-  workflow_call
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   build_and_test:
