@@ -22,7 +22,6 @@ def rechunk_zarr(zarr_root: str, chunked_root: str, adapter: NetCDFToZarrAdapter
     """
     temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
 
-
     zarr_store = adapter.s3.get_mapper(root=zarr_root,
                                        check=False,
                                        create=False)
