@@ -9,6 +9,7 @@ from os import environ
 from os.path import join as path_join
 from shutil import rmtree
 from tempfile import mkdtemp
+from uuid import uuid4
 
 from harmony import BaseHarmonyAdapter
 from harmony.util import generate_output_filename, HarmonyException
@@ -102,17 +103,18 @@ class NetCDFToZarrAdapter(BaseHarmonyAdapter):
                 collection = self._get_item_source(items[0]).collection
                 output_name = f'{collection}_merged.zarr'
 
+            pre_rechunk_root = path_join(self.message.stagingLocation, f'{uuid4()}.zarr')
             zarr_root = path_join(self.message.stagingLocation, output_name)
 
-            zarr_store = self.s3.get_mapper(root=zarr_root,
+            zarr_store = self.s3.get_mapper(root=pre_rechunk_root,
                                             check=False,
                                             create=True)
 
             mosaic_to_zarr(local_file_paths, zarr_store, logger=self.logger)
 
-            rechunked_root = rechunk_zarr(zarr_root, self)
+            rechunk_zarr(pre_rechunk_root, zarr_root, self)
 
-            return get_output_catalog(self.catalog, rechunked_root)
+            return get_output_catalog(self.catalog, zarr_root)
         except Exception as service_exception:
             self.logger.error(service_exception, exc_info=1)
             raise ZarrException(

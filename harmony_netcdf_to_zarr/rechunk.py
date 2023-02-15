@@ -13,21 +13,22 @@ from zarr import open_consolidated, consolidate_metadata, Group as zarrGroup
 import xarray as xr
 
 
-def rechunk_zarr(zarr_root: str, adapter: NetCDFToZarrAdapter) -> str:
+def rechunk_zarr(zarr_root: str, chunked_root: str, adapter: NetCDFToZarrAdapter) -> str:
     """Rechunks the zarr store found at zarr_root location.
 
-    It creates a new rechunked store and removes the store found at zarr_root.
+    Rechunks the store found at zarr_root, outputing a new rechunked store into
+    chunked root. Finally deleting the input zarr_root store.
 
     """
     temp_root = zarr_root.replace('.zarr', '_tmp.zarr')
-    target_root = zarr_root.replace('.zarr', '_rechunked.zarr')
+
 
     zarr_store = adapter.s3.get_mapper(root=zarr_root,
                                        check=False,
                                        create=False)
 
     zarr_temp = adapter.s3.get_mapper(root=temp_root, check=False, create=True)
-    zarr_target = adapter.s3.get_mapper(root=target_root,
+    zarr_target = adapter.s3.get_mapper(root=chunked_root,
                                         check=False,
                                         create=True)
 
@@ -37,9 +38,9 @@ def rechunk_zarr(zarr_root: str, adapter: NetCDFToZarrAdapter) -> str:
         adapter.logger.info(f'Nothing to clean in {temp_root}')
 
     try:
-        adapter.s3.rm(target_root, recursive=True)
+        adapter.s3.rm(chunked_root, recursive=True)
     except FileNotFoundError:
-        adapter.logger.info(f'Nothing to clean in {target_root}')
+        adapter.logger.info(f'Nothing to clean in {chunked_root}')
 
     t1 = time()
     rechunk_zarr_store(zarr_store, zarr_target, zarr_temp)
@@ -48,8 +49,6 @@ def rechunk_zarr(zarr_root: str, adapter: NetCDFToZarrAdapter) -> str:
 
     adapter.s3.rm(zarr_root, recursive=True)
     adapter.s3.rm(temp_root, recursive=True)
-
-    return target_root
 
 
 def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
