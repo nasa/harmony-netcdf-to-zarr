@@ -1,3 +1,9 @@
+## v1.1.1
+### 2023-02-17
+
+* DAS-1699 - Updates code to account for missing group attributes that are
+  being dropped by the rechunker library.
+
 ## v1.1.0
 ### 2023-02-08
 

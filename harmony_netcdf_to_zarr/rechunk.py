@@ -9,7 +9,7 @@ from rechunker import rechunk
 from typing import List, Dict, TYPE_CHECKING
 if TYPE_CHECKING:
     from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
-from zarr import open_consolidated, consolidate_metadata, Group as zarrGroup
+from zarr import open_consolidated, consolidate_metadata, group as open_zarr_group, Group as zarrGroup
 import xarray as xr
 
 
@@ -50,7 +50,8 @@ def rechunk_zarr(zarr_root: str, chunked_root: str, adapter: NetCDFToZarrAdapter
     adapter.s3.rm(temp_root, recursive=True)
 
 
-def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
+def rechunk_zarr_store(zarr_store: FSMap,
+                       zarr_target: FSMap,
                        zarr_temp: FSMap) -> str:
     """Rechunks a zarr store that was created by the mosaic_to_zarr processes.
 
@@ -67,6 +68,7 @@ def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
                          zarr_target,
                          temp_store=zarr_temp)
     array_plan.execute()
+    _copy_group_attributes(zarr_store, zarr_target)
     consolidate_metadata(zarr_target)
 
 
@@ -123,3 +125,26 @@ def _groups_from_zarr(zarr_root: str) -> List[str]:
     original_zarr.visit(is_group)
 
     return groups
+
+
+def _copy_group_attributes(source_loc, target_loc):
+    """Visit every source group and copy any attributes to the corresponding target group.
+
+    This code is necessary because the rechunker library is not copying over
+    group attributes below the root level.  There is a github issue
+    https://github.com/pangeo-data/rechunker/issues/131 and if that is
+    resolved, this code can be removed.
+
+    """
+    source = open_zarr_group(source_loc)
+    target = open_zarr_group(target_loc)
+
+    def _update_group_attrs(name):
+        if isinstance(source.get(name), zarrGroup):
+            try:
+                group = target.get(name)
+                group.attrs.update(source.get(name).attrs)
+            except AttributeError:
+                pass
+
+    source.visit(_update_group_attrs)
