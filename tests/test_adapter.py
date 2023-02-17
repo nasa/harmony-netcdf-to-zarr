@@ -135,8 +135,7 @@ class TestAdapter(TestCase):
         self.assertEqual(dict(out.attrs), ROOT_METADATA_VALUES)
 
         # Group metadata
-        # TODO [MHS, 02/03/2023] bug report on rechunker? https://github.com/pangeo-data/rechunker/issues/131
-        # self.assertEqual(out['data'].attrs['description'], 'Group to hold the data')
+        self.assertEqual(out['data'].attrs['description'], 'Group to hold the data')
 
         # Variable metadata
         var = out['data/vertical/north']
@@ -335,8 +334,7 @@ class TestAdapter(TestCase):
         self.assertEqual(dict(out.attrs), ROOT_METADATA_VALUES)
 
         # Group metadata
-        # TODO [MHS, 02/03/2023] bug report on rechunker? https://github.com/pangeo-data/rechunker/issues/131
-        # self.assertEqual(out['data'].attrs['description'], 'Group to hold the data')
+        self.assertEqual(out['data'].attrs['description'], 'Group to hold the data')
 
         # Variable metadata
         var = out['data/vertical/north']

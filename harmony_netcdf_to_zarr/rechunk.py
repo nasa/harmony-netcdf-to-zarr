@@ -9,7 +9,7 @@ from rechunker import rechunk
 from typing import List, Dict, TYPE_CHECKING
 if TYPE_CHECKING:
     from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
-from zarr import open_consolidated, consolidate_metadata, Group as zarrGroup
+from zarr import open_consolidated, consolidate_metadata, group, Group as zarrGroup
 import xarray as xr
 
 
@@ -50,7 +50,8 @@ def rechunk_zarr(zarr_root: str, chunked_root: str, adapter: NetCDFToZarrAdapter
     adapter.s3.rm(temp_root, recursive=True)
 
 
-def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
+def rechunk_zarr_store(zarr_store: FSMap,
+                       zarr_target: FSMap,
                        zarr_temp: FSMap) -> str:
     """Rechunks a zarr store that was created by the mosaic_to_zarr processes.
 
@@ -67,6 +68,7 @@ def rechunk_zarr_store(zarr_store: FSMap, zarr_target: FSMap,
                          zarr_target,
                          temp_store=zarr_temp)
     array_plan.execute()
+    _copy_group_attributes(zarr_store, zarr_target)
     consolidate_metadata(zarr_target)
 
 
@@ -123,3 +125,19 @@ def _groups_from_zarr(zarr_root: str) -> List[str]:
     original_zarr.visit(is_group)
 
     return groups
+
+
+def _copy_group_attributes(source_loc, target_loc):
+    """Visit every source group and copy any attributes to the corresponding target group."""
+    source = group(source_loc)
+    target = group(target_loc)
+
+    def _update_group_attrs(name):
+        if isinstance(source.get(name), zarrGroup):
+            try:
+                tgroup = target.get(name)
+                tgroup.attrs.update(source.get(name).attrs)
+            except AttributeError:
+                pass
+
+    source.visit(_update_group_attrs)
