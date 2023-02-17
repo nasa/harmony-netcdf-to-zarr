@@ -128,7 +128,14 @@ def _groups_from_zarr(zarr_root: str) -> List[str]:
 
 
 def _copy_group_attributes(source_loc, target_loc):
-    """Visit every source group and copy any attributes to the corresponding target group."""
+    """Visit every source group and copy any attributes to the corresponding target group.
+
+    This code is necessary because the rechunker library is not copying over
+    group attributes below the root level.  There is a github issue
+    https://github.com/pangeo-data/rechunker/issues/131 and if that is
+    resolved, this code can be removed.
+
+    """
     source = open_zarr_group(source_loc)
     target = open_zarr_group(target_loc)
 
