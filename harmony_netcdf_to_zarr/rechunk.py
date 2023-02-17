@@ -9,7 +9,7 @@ from rechunker import rechunk
 from typing import List, Dict, TYPE_CHECKING
 if TYPE_CHECKING:
     from harmony_netcdf_to_zarr.adapter import NetCDFToZarrAdapter
-from zarr import open_consolidated, consolidate_metadata, group, Group as zarrGroup
+from zarr import open_consolidated, consolidate_metadata, group as open_zarr_group, Group as zarrGroup
 import xarray as xr
 
 
@@ -129,14 +129,14 @@ def _groups_from_zarr(zarr_root: str) -> List[str]:
 
 def _copy_group_attributes(source_loc, target_loc):
     """Visit every source group and copy any attributes to the corresponding target group."""
-    source = group(source_loc)
-    target = group(target_loc)
+    source = open_zarr_group(source_loc)
+    target = open_zarr_group(target_loc)
 
     def _update_group_attrs(name):
         if isinstance(source.get(name), zarrGroup):
             try:
-                tgroup = target.get(name)
-                tgroup.attrs.update(source.get(name).attrs)
+                group = target.get(name)
+                group.attrs.update(source.get(name).attrs)
             except AttributeError:
                 pass
 
