@@ -354,7 +354,8 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
             shape=aggregated_shape,
             chunks=tuple(chunks),
             dtype=netcdf_variable.dtype,
-            fill_value=fill_value)
+            fill_value=fill_value
+        )
 
         if resolved_variable_name not in aggregated_dimensions:
             # For a non-aggregated dimension, insert input granule data

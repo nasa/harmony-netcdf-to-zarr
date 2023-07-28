@@ -243,8 +243,9 @@ class TestMosaicUtilities(TestCase):
 
             * Continuous granules (e.g., all output dimension values map to an
               input value).
-            * Discontinous granules (e.g., there is intervening space in the
-              output temporal dimension).
+            * Discontinuous granules (e.g., there is intervening space in the
+              output temporal dimension). This will have gaps in the output
+              temporal dimension.
 
         """
         merra_time_values = np.linspace(0, 1380, 24)
@@ -358,8 +359,13 @@ class TestMosaicUtilities(TestCase):
             # Check the output time has correct values and units.
             self.assertEqual(merra_mapping.output_dimensions['/time'].units,
                              'minutes since 2020-01-03T00:30:00')
+
+            # Expected time values are 24 consecutive hours, then a gap of 24
+            # hours, before another 24 consecutive hourly values.
+            expected_time_values = np.append(np.linspace(0, 23 * 60, 24),
+                                             np.linspace(48 * 60, 71 * 60, 24))
             assert_array_equal(merra_mapping.output_dimensions['/time'].values,
-                               np.linspace(0, 4260, 72))  # 72 values of consecutive hours
+                               expected_time_values)
 
             # Check none of the output dimensions have bounds information, as
             # none of the inputs did.
@@ -385,7 +391,9 @@ class TestMosaicUtilities(TestCase):
             * Continuous granules (e.g., all output dimension values map to an
               input value).
             * Discontinous granules (e.g., there is intervening space in the
-              output temporal dimension).
+              output temporal dimension). This test will now assume those gaps
+              are persisted as the service will no longer attempt to create a
+              regular grid.
 
         """
         expected_output_time_values = np.linspace(0, 432000, 6)  # Daily data
@@ -438,10 +446,15 @@ class TestMosaicUtilities(TestCase):
         """
 
         # Check the output time has correct values and units.
+        expected_discontinuous_time_values = np.array([
+            expected_output_time_values[0],
+            expected_output_time_values[2],
+            expected_output_time_values[5]
+        ])
         self.assertEqual(gpm_mapping.output_dimensions['/time'].units,
                          self.temporal_units)
         assert_array_equal(gpm_mapping.output_dimensions['/time'].values,
-                           expected_output_time_values)
+                           expected_discontinuous_time_values)
 
         # Check none of the output dimensions have bounds information, as
         # none of the inputs did.
@@ -451,6 +464,55 @@ class TestMosaicUtilities(TestCase):
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].bounds_values)
         self.assertIsNone(gpm_mapping.output_dimensions['/longitude'].bounds_path)
         """
+        self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_values)
+        self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_path)
+
+    @patch('harmony_netcdf_to_zarr.mosaic_utilities.Dataset')
+    def test_dimensions_mapping_unordered_granules(self, mock_dataset):
+        """ Test that the `DimensionsMapping.output_dimensions` mapping is
+            correctly instantiated from known input data. This specific test
+            targets data like GPM/IMERG, where the spatial dimensions are the
+            same in each granule, the temporal dimension epochs are the same,
+            but the temporal dimension values vary between granules.
+
+            This specific test ensures that the output temporal dimension will
+            be correctly ordered, even if the input granules are not. This is
+            achieved by the behaviour of `numpy.unique`.
+
+        """
+        expected_output_time_values = np.linspace(0, 172800, 3)  # Daily data
+        dataset_one = self.generate_netcdf_input(
+            'gpm_one.nc4', self.lat_data, self.lon_data,
+            np.array([expected_output_time_values[0]]), self.temporal_units
+        )
+        dataset_two = self.generate_netcdf_input(
+            'gpm_two.nc4', self.lat_data, self.lon_data,
+            np.array([expected_output_time_values[1]]), self.temporal_units
+        )
+        dataset_three = self.generate_netcdf_input(
+            'gpm_three.nc4', self.lat_data, self.lon_data,
+            np.array([expected_output_time_values[2]]), self.temporal_units
+        )
+
+        mock_dataset.side_effect = [dataset_one, dataset_two, dataset_three]
+        gpm_mapping = DimensionsMapping(['gpm_three.nc4', 'gpm_one.nc4',
+                                         'gpm_two.nc4'])
+
+        # Check the expected dimensions are in the output mapping.
+        # Note: aggregation of non-temporal dimensions has been disabled
+        # as the Swath Projector can have values with slight rounding
+        # errors in their output grid dimensions.
+        self.assertSetEqual(set(gpm_mapping.output_dimensions.keys()),
+                            {'/time'})
+
+        # Check the output time has correct values and units.
+        self.assertEqual(gpm_mapping.output_dimensions['/time'].units,
+                         self.temporal_units)
+        assert_array_equal(gpm_mapping.output_dimensions['/time'].values,
+                           expected_output_time_values)
+
+        # Check none of the output dimensions have bounds information, as
+        # none of the inputs did.
         self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_values)
         self.assertIsNone(gpm_mapping.output_dimensions['/time'].bounds_path)
 
@@ -538,9 +600,9 @@ class TestMosaicUtilities(TestCase):
             * All output dimension values map to an input dimension value
               and therefore all output bounds values can be copied from the
               input data
-            * There are output dimension values that do not map to input
-              dimension values (due to gaps in coverage) and the corresponding
-              bounds values for those gaps must be calculated.
+            * The inputs are discontinuous, and so the outputs will also be
+              discontinuous. (Note, previously, the gaps would be filled to
+              form a regularly sampled dimension)
 
         """
         dimension_data_one = np.linspace(0, 2, 3)
@@ -591,7 +653,7 @@ class TestMosaicUtilities(TestCase):
                 if dataset.isopen():
                     dataset.close()
 
-        with self.subTest('Some output dimension values are in coverage gaps'):
+        with self.subTest('Discontinuous input granules'):
             dataset_one = self.generate_netcdf_with_bounds('bounds_three.nc4',
                                                            'dim',
                                                            dimension_data_one,
@@ -617,15 +679,12 @@ class TestMosaicUtilities(TestCase):
                                                [2.5, 3.5],
                                                [3.5, 4.5],
                                                [4.5, 5.5],
-                                               [5.5, 6.5],
-                                               [6.5, 7.5],
-                                               [7.5, 8.5],
                                                [8.5, 9.5],
                                                [9.5, 10.5],
                                                [10.5, 11.5]])
 
             assert_array_equal(mapping.output_dimensions['/dim'].values,
-                               np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))
+                               np.array([0, 1, 2, 3, 4, 5, 9, 10, 11]))
             self.assertEqual(mapping.output_dimensions['/dim'].bounds_path,
                              '/dim_bnds')
             assert_array_equal(mapping.output_dimensions['/dim'].bounds_values,

@@ -162,7 +162,7 @@ class DimensionsMapping:
         self._map_input_dimensions()
 
         if len(self.input_paths) > 1:
-            # Only calculate regular, aggregated dimensions for multiple inputs
+            # Only calculate aggregated dimensions for multiple inputs
             self._aggregate_output_dimensions()
 
     def _map_input_dimensions(self):
@@ -263,8 +263,22 @@ class DimensionsMapping:
                                        dimension_name: str) -> DimensionInformation:
         """ Find the units metadata attribute for the input granule with the
             earliest epoch. Apply this epoch to the temporal data in all
-            granules, to place them with respect to a common epoch. Then use
-            generate an output dimension grid.
+            granules, to place them with respect to a common epoch.
+
+            This method now only returns an aggregated array of input values.
+            Previously, it would calculate a regular grid that had evenly
+            spaced pixels, and contained all input values. Several collections
+            have monthly granules that produce grids with hourly or finer
+            resolution, and so caused significant performance issues and
+            created very sparsely populated Zarr stores.
+
+            To reimplement uniform gridding, replace the call to
+            `self._get_dimension_bounds` and the return statement with:
+
+            ```
+            return self._get_output_dimension(dimension_name, all_input_values,
+                                              output_dimension_units)
+            ```
 
         """
         dimension_units = [dimension_input.units
@@ -281,9 +295,12 @@ class DimensionsMapping:
                 dtype=list(dimension_inputs.values())[0].get_values().dtype
             )
         )
-
-        return self._get_output_dimension(dimension_name, all_input_values,
-                                          output_dimension_units)
+        bounds_path, bounds_values = self._get_dimension_bounds(
+            dimension_name, all_input_values
+        )
+        return DimensionInformation(dimension_name, all_input_values,
+                                    output_dimension_units, bounds_path,
+                                    bounds_values)
 
     def _get_output_dimension(self, dimension_name: str,
                               input_dimension_values: np.ndarray,

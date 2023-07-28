@@ -1,3 +1,10 @@
+## v1.1.2
+### 2023-07-28
+
+* DAS-1891 - Update temporal aggregation to return output temporal dimensions
+  only containing values that map to values in input granules, rather than
+  producing a regular grid.
+
 ## v1.1.1
 ### 2023-02-17
 
