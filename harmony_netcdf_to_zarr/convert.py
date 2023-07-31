@@ -565,7 +565,7 @@ def compute_chunksize(shape: Union[tuple, list],
         the regenerated new zarr chunks
     """
     # convert compressed_chunksize_byte to integer if it's a str
-    if type(compressed_chunksize_byte) == str:
+    if isinstance(compressed_chunksize_byte, str):
         try:
             (value, unit) = findall(
                 r'^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$', compressed_chunksize_byte
