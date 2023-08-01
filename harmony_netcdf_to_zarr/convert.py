@@ -354,7 +354,8 @@ def __copy_variable(netcdf_variable: NetCDFVariable, zarr_group: ZarrGroup,
             shape=aggregated_shape,
             chunks=tuple(chunks),
             dtype=netcdf_variable.dtype,
-            fill_value=fill_value)
+            fill_value=fill_value
+        )
 
         if resolved_variable_name not in aggregated_dimensions:
             # For a non-aggregated dimension, insert input granule data
@@ -564,7 +565,7 @@ def compute_chunksize(shape: Union[tuple, list],
         the regenerated new zarr chunks
     """
     # convert compressed_chunksize_byte to integer if it's a str
-    if type(compressed_chunksize_byte) == str:
+    if isinstance(compressed_chunksize_byte, str):
         try:
             (value, unit) = findall(
                 r'^\s*([\d.]+)\s*(Ki|Mi|Gi)\s*$', compressed_chunksize_byte
