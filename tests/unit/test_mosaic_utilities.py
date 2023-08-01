@@ -396,18 +396,18 @@ class TestMosaicUtilities(TestCase):
               regular grid.
 
         """
-        expected_output_time_values = np.linspace(0, 432000, 6)  # Daily data
+        continuous_time_values = np.linspace(0, 432000, 6)  # Daily data
         dataset_one = self.generate_netcdf_input(
             'gpm_one.nc4', self.lat_data, self.lon_data,
-            np.array([expected_output_time_values[0]]), self.temporal_units
+            np.array([continuous_time_values[0]]), self.temporal_units
         )
         dataset_two = self.generate_netcdf_input(
             'gpm_two.nc4', self.lat_data, self.lon_data,
-            np.array([expected_output_time_values[2]]), self.temporal_units
+            np.array([continuous_time_values[2]]), self.temporal_units
         )
         dataset_three = self.generate_netcdf_input(
             'gpm_three.nc4', self.lat_data, self.lon_data,
-            np.array([expected_output_time_values[5]]), self.temporal_units
+            np.array([continuous_time_values[5]]), self.temporal_units
         )
 
         mock_dataset.side_effect = [dataset_one, dataset_two, dataset_three]
@@ -447,9 +447,9 @@ class TestMosaicUtilities(TestCase):
 
         # Check the output time has correct values and units.
         expected_discontinuous_time_values = np.array([
-            expected_output_time_values[0],
-            expected_output_time_values[2],
-            expected_output_time_values[5]
+            continuous_time_values[0],
+            continuous_time_values[2],
+            continuous_time_values[5]
         ])
         self.assertEqual(gpm_mapping.output_dimensions['/time'].units,
                          self.temporal_units)

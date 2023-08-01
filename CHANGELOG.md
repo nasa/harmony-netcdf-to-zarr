@@ -1,4 +1,4 @@
-## v1.1.2
+## v1.2.0
 ### 2023-07-28
 
 * DAS-1891 - Update temporal aggregation to return output temporal dimensions
