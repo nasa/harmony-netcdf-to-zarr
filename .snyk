@@ -1,0 +1,4 @@
+# Snyk (https://snyk.io) policy file, primarily to set the specific minor
+# version of Python to use while scanning requirements files.
+language-settings:
+  python: "3.9"
