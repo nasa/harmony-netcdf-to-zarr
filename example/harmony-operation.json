@@ -1,5 +1,6 @@
 {
   "user": "jdoe",
+  "format": {"mime": "application/x-zarr"},
   "callback": "http://localhost/some-path",
   "stagingLocation": "s3://${STAGING_BUCKET}/public/harmony/netcdf-to-zarr/example-uuid/",
   "sources": [

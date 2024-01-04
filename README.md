@@ -41,7 +41,7 @@ and update the `.env` with the correct values.
 
 #### Python & Project Dependencies (Optional)
 
-If you would like to do local development outside of Docker, install Python (3.7.4), and create a Python virtual environment.
+If you would like to do local development outside of Docker, install Python (3.9), and create a Python virtual environment.
 
 Install project dependencies:
 
@@ -52,7 +52,7 @@ Install project dependencies:
 
 If you'd rather not build the image locally (as instructed below), you can simply pull the latest image: 
     
-    $ docker pull harmonyservices/netcdf-to-zarr
+    $ docker pull ghcr.io/nasa/harmony-netcdf-to-zarr
 
 Some of the [Makefile](./Makefile) targets referenced below include an optional argument that allows us to use a local copy of 
 `harmony-service-lib-py` (which is useful for concurrent development): 

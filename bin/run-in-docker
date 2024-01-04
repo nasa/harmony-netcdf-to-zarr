@@ -23,13 +23,13 @@ if [ -f .env ]; then
   args="$args --env-file=.env"
 fi
 
-cmd="python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$($scriptdir/replace.sh $@)'"
+cmd="FALLBACK_AUTHN_ENABLED=true python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-metadata-dir example --harmony-sources example/catalog0.json --harmony-input '$($scriptdir/replace.sh $@)'"
 
 if [[ ! -z "${LOCAL_SVCLIB_DIR}" ]]
 then
   LOCAL_SVCLIB_DIR=$(readpath $LOCAL_SVCLIB_DIR)
   svclib_volume="-v ${LOCAL_SVCLIB_DIR}:/opt/harmony-service-lib-py"
-  cmd="pip install --user -e /opt/harmony-service-lib-py && python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input '$($scriptdir/replace.sh $@)'"
+  cmd="pip install --user -e /opt/harmony-service-lib-py && FALLBACK_AUTHN_ENABLED=true python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-metadata-dir example --harmony-sources example/catalog0.json --harmony-input '$($scriptdir/replace.sh $@)'"
 fi
 
 docker run --rm -it \

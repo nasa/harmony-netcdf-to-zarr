@@ -8,7 +8,7 @@ Runs the harmony_netcdf_to_zarr CLI
 
 import sys
 
-if sys.version_info[0] != 3 or sys.version_info[1] < 6:
+if sys.version_info[0] != 3 or sys.version_info[1] < 9:
     raise Exception('You must use Python 3.6 or later')
 
 import argparse
