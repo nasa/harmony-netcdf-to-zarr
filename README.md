@@ -54,7 +54,7 @@ Build the Docker image:
 
 or build the image using a local copy of `harmony-service-lib-py` (useful for concurrent development):
 
-    $ make target-name LOCAL_SVCLIB_DIR=../harmony-service-lib-py
+    $ make build-image LOCAL_SVCLIB_DIR=../harmony-service-lib-py
 
 You can now run a workflow in your local Harmony stack and it will execute using this image.
 
