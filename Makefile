@@ -11,12 +11,3 @@ lint:
 
 build-image:
 	LOCAL_SVCLIB_DIR=${LOCAL_SVCLIB_DIR} bin/build-image
-
-build-test-image:
-	bin/build-test-image
-
-test-in-docker:
-	LOCAL_SVCLIB_DIR=${LOCAL_SVCLIB_DIR} bin/test-in-docker
-
-run-in-docker:
-	LOCAL_SVCLIB_DIR=${LOCAL_SVCLIB_DIR} bin/run-in-docker example/harmony-operation.json
