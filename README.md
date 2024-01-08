@@ -26,7 +26,7 @@ This service uses the
 and requires that certain environment variables be set, as shown in the Harmony
 Service Lib README. For example, `STAGING_BUCKET` and `STAGING_PATH` are
 required, and `EDL_USERNAME` and `EDL_PASSWORD` are required for any
-data behind Earthdata Login. For local testing (not integrated into Harmony in
+data behind Earthdata Login. For automated testing (not integrated into Harmony in
 a dev environment or AWS deployment), use the example `.env` file in this repo:
 
     $ cp example/dotenv .env
@@ -35,7 +35,7 @@ and update the `.env` with the correct values.
 
 ### Python & Project Dependencies
 
-In order to be able to run the automated tests after making changes, install Python (3.9), and create a Python virtual environment.
+In order to be able to run the automated tests, install Python (3.9), and create a Python virtual environment.
 
 Install project dependencies:
 
