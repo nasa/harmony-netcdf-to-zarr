@@ -11,21 +11,15 @@ using the `h5netcdf` driver.  This includes some HDF5 EOSDIS datasets.
 Individual collections must be tested to ensure compatibility.
 
 
-## Development
+## Development Setup
+
+### Harmony Instance
 
 It is recommended that the NetCDF-to-Zarr service is tested and developed using
 a local Harmony instance. This can be established following the instructions in
 the [Harmony repository](https://github.com/nasa/harmony).
 
-### Setup
-
-#### Docker
-
-It is possible to develop and run this service locally using only Docker.  This
-is the recommended option for validation and small changes. Install
-[Docker](https://www.docker.com/get-started) on your development machine.
-
-#### Environment file
+### Environment File
 
 This service uses the
 [harmony-service-lib-py](https://github.com/nasa/harmony-service-lib-py),
@@ -39,60 +33,28 @@ a dev environment or AWS deployment), use the example `.env` file in this repo:
 
 and update the `.env` with the correct values.
 
-#### Python & Project Dependencies (Optional)
+### Python & Project Dependencies
 
-If you would like to do local development outside of Docker, install Python (3.9), and create a Python virtual environment.
+In order to be able to run the automated tests after making changes, install Python (3.9), and create a Python virtual environment.
 
 Install project dependencies:
 
     $ python -m pip install --upgrade pip
-    $ make install
+    $ make install 
 
-### Development with Docker
-
-If you'd rather not build the image locally (as instructed below), you can simply pull the latest image: 
-    
-    $ docker pull ghcr.io/nasa/harmony-netcdf-to-zarr
-
-Some of the [Makefile](./Makefile) targets referenced below include an optional argument that allows us to use a local copy of 
-`harmony-service-lib-py` (which is useful for concurrent development): 
-    
-    $ make target-name LOCAL_SVCLIB_DIR=../harmony-service-lib-py
-
-#### Testing & Running the Service Independently
-
-To run unit tests, coverage reports, or run the service on a sample message _outside_ of the
-entire Harmony stack, start by building new runtime and test images:
-
-*IMPORTANT*: If Minikube is installed, be sure to do these steps in a shell in which has *not* been updated to point to
-the Minikube Docker daemon. This is usually done via a shell `eval` command. Doing so will
-cause tests and the service to fail due to limitations in Minikube.
-
-    $ make build-image
-    $ make build-test-image
-
-Run unit tests and generate overage reports. This will mount the local directory into the
-container and run the unit tests. So all tests will reflect local changes to the service.
-
-    $ make test-in-docker
-
-Finally, run the service using an example Harmony operation request
-([example/harmony-operation.json](example/harmony-operation.json)) as input.  This will reflect
-local changes to this repo, but will not include local changes to the Harmony Service Lib.
-
-    $ make run-in-docker
-
-#### Testing & Running the Service in Harmony
-
-*Without local Harmony Service Lib changes*:
+## Running & Testing the Service
 
 If using Minikube, be sure your environment is pointed to the Minikube Docker daemon:
 
     $ eval $(minikube docker-env)
 
-Build the image:
+Build the Docker image:
 
     $ make build-image
+
+or build the image using a local copy of `harmony-service-lib-py` (useful for concurrent development):
+
+    $ make target-name LOCAL_SVCLIB_DIR=../harmony-service-lib-py
 
 You can now run a workflow in your local Harmony stack and it will execute using this image.
 
@@ -101,22 +63,17 @@ contained in the Harmony repository):
 
 	$ bin/restart-services
 
-### Development without Docker
+Run through these steps again (build image, restart services) in order to pick up any new changes.
 
-#### Testing & running the Service Independently
+If you'd rather not build the image locally, you can simply pull the latest image: 
+    
+    $ docker pull ghcr.io/nasa/harmony-netcdf-to-zarr
 
-This will require credentials for the Harmony Sandbox NGAPShApplicationDeveloper
-to be present in your `~/.aws/credentials` file.
+## Automated Tests
 
 Run tests with coverage reports:
 
     $ make test
-
-Run an example:
-
-    $ dotenv run python3 -m harmony_netcdf_to_zarr --harmony-action invoke --harmony-input "$(bin/replace.sh example/harmony-operation.json)"
-
-#### Installing `harmony-service-lib-py` in Development Mode
 
 You may be concurrently developing on this service as well as the `harmony-service-lib-py`. If so, and you
 want to test changes to it along with this service, install the `harmony-service-lib-py` in 'development mode'.
@@ -127,8 +84,6 @@ pip install -e ../harmony-service-lib-py
 ```
 
 Now any changes made to that local repo will be visible in this project when you run tests, etc.
-
-Finally, you can test & run the service in Harmony just as shown in the `Development with Docker` section above.
 
 ## Contributions:
 
