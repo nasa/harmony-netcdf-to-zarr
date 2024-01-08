@@ -37,7 +37,7 @@ and update the `.env` with the correct values.
 
 In order to be able to run the automated tests, install Python (3.9), and create a Python virtual environment.
 
-Install project dependencies:
+Activate the newly created environment and install the project dependencies:
 
     $ python -m pip install --upgrade pip
     $ make install 
