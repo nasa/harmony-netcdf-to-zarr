@@ -23,7 +23,7 @@ SHARED_SECRET_KEY=_THIS_IS_MY_32_CHARS_SECRET_KEY_
 
 # Set to 'true' if running Docker in Docker and the docker daemon is somewhere other than the current context
 # Leave blank, i.e. DIND= if not running Docker in Docker
-DIND=true
+DIND=
 
 # Indicates where docker commands should find the docker daemon
 DOCKER_DAEMON_ADDR=host.docker.internal:2375
