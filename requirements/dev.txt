@@ -7,4 +7,3 @@ moto ~= 4.2.7
 pytest ~= 7.4.3
 python-dotenv ~=1.0.0
 safety ~= 2.3.5
-werkzeug ~= 3.0.1 # Dependency of moto, pinned to mitigate vulnerability.
