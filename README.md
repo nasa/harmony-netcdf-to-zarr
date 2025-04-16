@@ -1,3 +1,13 @@
+# :warning: This project is deprecated :warning:
+
+![No Longer Maintained](https://img.shields.io/badge/maintenance-no--longer--maintained-red)
+
+**The Harmony NetCDF-to-Zarr conversion service is no longer under active
+development. It is no longer available for invocation via
+[Harmony](harmony.earthdata.nasa.gov). For the creation of large scale Zarr
+stores that represent Earth science data, please consider using
+[pangeo-forge](https://pangeo-forge.org/).**
+
 # Harmony NetCDF4 to Zarr converter
 
 A Harmony service to convert NetCDF4 files to Zarr files.  Takes conventional
